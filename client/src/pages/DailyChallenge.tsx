@@ -127,9 +127,9 @@ export default function DailyChallenge() {
     try {
       const response = await api.get<DailyChallengeResponse>(`/daily-challenge/${mode}`);
       const anchor = createClockAnchor(response.data.serverNow);
-      setDaily(response.data);
-      setRefreshDeadline(localDeadline(response.data.nextRefreshAt, anchor));
       if (anchor) setNow(anchor.clientNow);
+      setRefreshDeadline(localDeadline(response.data.nextRefreshAt, anchor));
+      setDaily(response.data);
       setStartError(null);
       const status = response.data.challenge.status;
       if (status === 'won' || status === 'lost') {

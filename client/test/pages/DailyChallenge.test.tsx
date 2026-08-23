@@ -73,8 +73,8 @@ describe('DailyChallenge', () => {
     } as never);
     renderAtRoute(<DailyChallenge />, { route: '/daily/beginner', path: '/daily/:mode' });
 
-    expect(await screen.findByText('每日挑战')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '入门版' })).toBeInTheDocument();
+    expect(screen.getByText('每日挑战')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '入门版' })).toBeInTheDocument();
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     expect(screen.queryByText('今日前十')).not.toBeInTheDocument();
     expect(screen.queryByText('该难度今天还没有通关记录')).not.toBeInTheDocument();
