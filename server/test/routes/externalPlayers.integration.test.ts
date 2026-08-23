@@ -163,6 +163,7 @@ describe('external player API tokens', () => {
       expect(exported.response.status).toBe(200);
       expect(exported.response.headers.get('content-disposition')).toContain('players.json');
       expect(exported.data.find((player: { nickname: string }) => player.nickname === nickA)).toEqual({
+        playerId,
         nickname: nickA,
         nationality: 'Denmark',
         region: 'Europe',

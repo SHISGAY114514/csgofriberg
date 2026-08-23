@@ -677,6 +677,7 @@ describe('admin user management', () => {
       expect(exported.response.headers.get('content-disposition')).toContain('players.json');
       expect(() => playerImportSchema.parse({ players: exported.data })).not.toThrow();
       expect(exported.data.find((player: { nickname: string }) => player.nickname === nickname)).toEqual({
+        playerId,
         nickname,
         nationality: 'China',
         region: 'Asia',

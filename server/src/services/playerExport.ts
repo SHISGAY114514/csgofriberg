@@ -2,6 +2,7 @@ import { db } from '../db/knex';
 import { normalizeTeamHistory } from './teamHistory';
 
 export interface ExportedPlayer {
+  playerId: number;
   nickname: string;
   nationality: string;
   region: string;
@@ -46,6 +47,7 @@ export async function exportPlayers(): Promise<ExportedPlayer[]> {
     difficultiesByPlayer.set(playerId, difficulties);
   }
   return players.map((player) => ({
+    playerId: Number(player.id),
     nickname: String(player.nickname),
     nationality: String(player.nationality),
     region: String(player.region),
