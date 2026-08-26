@@ -144,6 +144,7 @@ export async function ensureSchema(instance: Knex = db): Promise<void> {
       t.string('guest_key', 64).nullable().index();
       t.integer('target_player_id').notNullable().references('id').inTable('players');
       t.string('mode', 16).notNullable().defaultTo('easy');
+      t.string('variant', 32).notNullable().defaultTo('classic');
       t.text('guesses').notNullable().defaultTo('[]');
       t.text('guess_times').notNullable().defaultTo('[]');
       t.integer('first_guess_player_id').nullable();
@@ -155,6 +156,9 @@ export async function ensureSchema(instance: Knex = db): Promise<void> {
   }
   if (!(await instance.schema.hasColumn('games', 'session_id'))) {
     await instance.schema.alterTable('games', (t) => t.string('session_id', 64).nullable());
+  }
+  if (!(await instance.schema.hasColumn('games', 'variant'))) {
+    await instance.schema.alterTable('games', (t) => t.string('variant', 32).notNullable().defaultTo('classic'));
   }
   if (!(await instance.schema.hasColumn('players', 'team_history'))) {
     await instance.schema.alterTable('players', (t) => {

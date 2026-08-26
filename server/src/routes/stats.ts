@@ -275,6 +275,7 @@ router.get(
         .select(
           'g.id',
           'g.mode',
+          'g.variant',
           'g.status',
           'g.guess_count as guessCount',
           'g.finished_at as finishedAt',
@@ -431,6 +432,7 @@ router.get(
     res.json({
       id: game.id,
       mode: game.mode,
+      variant: game.variant ?? 'classic',
       status: game.status,
       guessCount: Number(game.guess_count),
       createdAt: game.created_at,

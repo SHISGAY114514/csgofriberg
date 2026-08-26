@@ -53,6 +53,7 @@ describe('database schema initialization', () => {
     expect(await instance.schema.hasColumn('players', 'age')).toBe(true);
     expect(await instance.schema.hasColumn('players', 'team_history')).toBe(true);
     expect(await instance.schema.hasColumn('games', 'first_guess_player_id')).toBe(true);
+    expect(await instance.schema.hasColumn('games', 'variant')).toBe(true);
     expect(await instance.schema.hasColumn('games', 'guess_times')).toBe(true);
     expect(await instance.schema.hasColumn('match_records', 'winner_key')).toBe(true);
     expect(await instance.schema.hasColumn('match_records', 'finish_reason')).toBe(true);

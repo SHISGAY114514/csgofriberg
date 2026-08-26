@@ -25,10 +25,31 @@ import {
   personalStatsCacheKeysForDifficulty,
 } from '../services/statsCache';
 import { pickTargetAvoidingRecent, rememberTargetSelection } from '../services/targetSelection';
+import {
+  isSingleGameVariant,
+  listRoomGameModes,
+  listSingleGameVariants,
+  singleGameVariantSchema,
+  type SingleGameVariant,
+} from '../services/gameModes';
 
 const router = Router();
 router.use(optionalAuth);
 const gameIdParams = z.object({ id: z.string().uuid() });
+
+router.get('/modes', (_req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  res.json({ version: 1, scope: 'multiplayer-room', modes: listRoomGameModes() });
+});
+
+router.get('/variants', (_req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  res.json({
+    version: 1,
+    single: listSingleGameVariants(),
+    multiplayerRoom: listRoomGameModes(),
+  });
+});
 
 function identity(req: { user?: { id: number }; guestKey?: string }) {
   if (req.user) {
@@ -80,6 +101,7 @@ async function settleGame(game: SingleGameState, status: 'won' | 'lost'): Promis
         guest_key: game.guestKey,
         target_player_id: game.targetPlayerId,
         mode: game.mode,
+        variant: game.variant ?? 'classic',
         guesses: JSON.stringify(game.guesses.map((guess) => guess.playerId)),
         guess_times: JSON.stringify(game.guessTimes),
         first_guess_player_id: game.guesses[0]?.playerId ?? null,
@@ -114,14 +136,17 @@ router.post(
   }),
   validateBody(z.object({
     mode: z.string().trim().regex(/^[a-z0-9][a-z0-9_-]{0,31}$/).default('beginner'),
+    variant: singleGameVariantSchema.default('classic'),
   })),
   asyncHandler(async (req, res) => {
     const owner = identity(req);
     if (!owner) throw new HttpError(400, 'GUEST_KEY_REQUIRED');
     const mode = req.body.mode as SingleGameMode;
+    const variant = req.body.variant as SingleGameVariant;
+    if (!isSingleGameVariant(variant)) throw new HttpError(400, 'GAME_VARIANT_UNAVAILABLE');
     if (!isDifficultyAvailable(mode)) throw new HttpError(400, 'DIFFICULTY_UNAVAILABLE');
-    const started = await withKeyLock(`single-start:${owner.identityKey}:${mode}`, async () => {
-      const existing = await loadActiveSingleGame(owner.identityKey, mode);
+    const started = await withKeyLock(`single-start:${owner.identityKey}:${mode}:${variant}`, async () => {
+      const existing = await loadActiveSingleGame(owner.identityKey, mode, variant);
       if (existing) return { game: existing, selectedTargetId: null };
       const target = await pickTargetAvoidingRecent({
         mode,
@@ -131,6 +156,7 @@ router.post(
       const result = await createOrResumeSingleGameWithStatus({
         ...owner,
         mode,
+        variant,
         targetPlayerId: target.id,
       });
       return {
@@ -148,6 +174,7 @@ router.post(
     res.json({
       gameId: started.game.id,
       mode: started.game.mode,
+      variant: started.game.variant ?? 'classic',
       maxGuesses: MAX_GUESSES,
       guesses: publicGuesses(started.game),
     });

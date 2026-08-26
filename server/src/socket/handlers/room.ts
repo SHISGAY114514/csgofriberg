@@ -44,6 +44,7 @@ import {
 } from '../schemas';
 import { SocketEventContext, SocketLifecycle } from './context';
 import { cancelLocalTimer } from '../timers';
+import { getRoomGameModeDefinition } from '../../services/gameModes';
 
 type RoomEventContext = SocketEventContext & {
   refreshIdentityEmailState: () => Promise<void>;
@@ -157,7 +158,8 @@ export async function handleRoomCreate(
   }
   const boType = payload.boType;
   const gameMode = payload.gameMode;
-  const totalRounds = gameMode === 'relay' ? payload.totalRounds : boType;
+  const modeDefinition = getRoomGameModeDefinition(gameMode);
+  const totalRounds = modeDefinition.totalRounds === 'bo' ? boType : payload.totalRounds;
   const dbType = payload.dbType;
   if (!isDifficultyAvailable(dbType)) {
     ack?.({ code: 'DIFFICULTY_UNAVAILABLE' });
@@ -181,7 +183,9 @@ export async function handleRoomCreate(
     boType,
     gameMode,
     totalRounds,
-    maxPlayers: gameMode === 'relay2v2' ? 4 : payload.maxPlayers,
+    maxPlayers: modeDefinition.maxPlayers === 4 && modeDefinition.requiresTeams
+      ? modeDefinition.maxPlayers
+      : payload.maxPlayers,
     currentTurnKey: null,
     relaySolvedRounds: 0,
     relayGuesses: [],

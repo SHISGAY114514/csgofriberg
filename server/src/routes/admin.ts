@@ -639,6 +639,7 @@ router.get(
         .select(
           'g.id',
           'g.mode',
+          'g.variant',
           'g.status',
           'g.guess_count as guessCount',
           'g.finished_at as finishedAt',
@@ -751,6 +752,7 @@ router.get(
     res.json({
       id: Number(game.id),
       mode: game.mode,
+      variant: game.variant ?? 'classic',
       status: game.status,
       guessCount: Number(game.guess_count),
       createdAt: game.created_at,
@@ -1189,7 +1191,7 @@ router.get(
       const rows = await db('games as g').join('players as p', 'p.id', 'g.target_player_id')
         .where('g.guest_key', guest.guest_key).whereNot('g.status', 'playing')
         .orderBy('g.finished_at', 'desc').orderBy('g.id', 'desc').offset(offset).limit(parsed.pageSize + 1)
-        .select('g.id', 'g.mode', 'g.status', 'g.guess_count as guessCount', 'g.finished_at as finishedAt', 'p.nickname as answer');
+        .select('g.id', 'g.mode', 'g.variant', 'g.status', 'g.guess_count as guessCount', 'g.finished_at as finishedAt', 'p.nickname as answer');
       return res.json({ type: parsed.type, page: parsed.page, pageSize: parsed.pageSize, hasNext: rows.length > parsed.pageSize, items: rows.slice(0, parsed.pageSize).map((row) => ({ type: 'single', ...row })) });
     }
     const identityKey = `g:${guest.guest_key}`;

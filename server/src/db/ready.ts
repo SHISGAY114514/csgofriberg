@@ -31,7 +31,7 @@ const REQUIRED_COLUMNS: Record<string, string[]> = {
     'handled_at',
     'created_at',
   ],
-  games: ['id', 'session_id', 'user_id', 'guest_key', 'guess_times', 'first_guess_player_id', 'status'],
+  games: ['id', 'session_id', 'user_id', 'guest_key', 'variant', 'guess_times', 'first_guess_player_id', 'status'],
   match_records: [
     'id',
     'room_id',

@@ -7,13 +7,15 @@ import {
   MAX_ROOM_MAX_GUESSES,
   MAX_ROOM_ROUND_DURATION_MS,
   MAX_CLASSIC_ROOM_PLAYERS,
-  MAX_RELAY_ROOM_PLAYERS,
-  MAX_RELAY2V2_ROOM_PLAYERS,
   MIN_ROOM_GUESS_INTERVAL_MS,
   MIN_ROOM_MAX_GUESSES,
   MIN_ROOM_ROUND_DURATION_MS,
   MIN_CLASSIC_ROOM_PLAYERS,
 } from '../services/roomStore';
+import {
+  getRoomGameModeDefinition,
+  roomGameModeSchema,
+} from '../services/gameModes';
 
 const difficultyKeySchema = z.string().trim().regex(/^[a-z0-9][a-z0-9_-]{0,31}$/);
 
@@ -25,7 +27,7 @@ export const roomStateProbePayloadSchema = z.object({}).strict();
 
 export const roomCreatePayloadSchema = z.object({
   dbType: difficultyKeySchema,
-  gameMode: z.enum(['classic', 'relay', 'relay2v2']).default('classic'),
+  gameMode: roomGameModeSchema.default('classic'),
   boType: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(7)]).default(3),
   totalRounds: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(7)]).default(3),
   maxPlayers: z.number().int().min(MIN_CLASSIC_ROOM_PLAYERS).max(MAX_CLASSIC_ROOM_PLAYERS).default(2),
@@ -43,15 +45,20 @@ export const roomCreatePayloadSchema = z.object({
     .max(MAX_ROOM_ROUND_DURATION_MS)
     .default(DEFAULT_ROOM_ROUND_DURATION_MS),
 }).superRefine((payload, context) => {
-  if (payload.gameMode === 'relay' && payload.maxPlayers > MAX_RELAY_ROOM_PLAYERS) {
+  const definition = getRoomGameModeDefinition(payload.gameMode);
+  if (payload.maxPlayers < definition.minPlayers || payload.maxPlayers > definition.maxPlayers) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['maxPlayers'],
-      message: `Relay rooms support at most ${MAX_RELAY_ROOM_PLAYERS} players`,
+      message: `Game mode ${payload.gameMode} supports ${definition.minPlayers}-${definition.maxPlayers} players`,
     });
   }
-  if (payload.gameMode === 'relay2v2' && payload.maxPlayers !== MAX_RELAY2V2_ROOM_PLAYERS) {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ['maxPlayers'], message: '2v2 relay rooms require exactly 4 players' });
+  if (definition.requiresTeams && payload.maxPlayers !== definition.maxPlayers) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['maxPlayers'],
+      message: `Game mode ${payload.gameMode} requires ${definition.maxPlayers} players`,
+    });
   }
 });
 

@@ -4,9 +4,14 @@ import { GuessFeedback } from '../types';
 import { config } from '../config';
 import { logTransientError } from './transientLog';
 import { DIFFICULTY_LEVELS } from '../difficulties';
+import {
+  getRoomGameModeDefinition,
+  isRoomGameMode,
+  type GameMode,
+} from './gameModes';
 
 export type BoType = 1 | 3 | 5 | 7;
-export type GameMode = 'classic' | 'relay' | 'relay2v2';
+export type { GameMode } from './gameModes';
 export type RoomTeam = 'a' | 'b';
 export type DbType = string;
 export type MatchmakingPool = 'restricted' | 'verified';
@@ -261,21 +266,20 @@ function normalizeRoom(room: StoredRoom): StoredRoom {
   if (typeof room.verifiedOnly !== 'boolean') room.verifiedOnly = false;
   if (typeof room.anonymous !== 'boolean') room.anonymous = false;
   if (typeof room.matchmaking !== 'boolean') room.matchmaking = false;
-  if (!['classic', 'relay', 'relay2v2'].includes(room.gameMode)) room.gameMode = 'classic';
-  if (![1, 3, 5, 7].includes(Number(room.totalRounds))) room.totalRounds = room.gameMode !== 'classic' ? 3 : room.boType;
-  if (room.gameMode === 'classic') room.totalRounds = room.boType;
-  const maxPlayersForMode = room.gameMode === 'relay2v2'
-    ? MAX_RELAY2V2_ROOM_PLAYERS
-    : room.gameMode === 'relay'
-      ? MAX_RELAY_ROOM_PLAYERS
-    : MAX_CLASSIC_ROOM_PLAYERS;
+  if (!isRoomGameMode(room.gameMode)) room.gameMode = 'classic';
+  const modeDefinition = getRoomGameModeDefinition(room.gameMode);
+  if (![1, 3, 5, 7].includes(Number(room.totalRounds))) {
+    room.totalRounds = modeDefinition.totalRounds === 'bo' ? room.boType : 3;
+  }
+  if (modeDefinition.totalRounds === 'bo') room.totalRounds = room.boType;
+  const maxPlayersForMode = modeDefinition.maxPlayers;
   if (
     !Number.isInteger(room.maxPlayers)
-    || room.maxPlayers < MIN_CLASSIC_ROOM_PLAYERS
+    || room.maxPlayers < modeDefinition.minPlayers
     || room.maxPlayers > maxPlayersForMode
-  ) room.maxPlayers = 2;
+  ) room.maxPlayers = modeDefinition.minPlayers;
   if (room.matchmaking) room.maxPlayers = 2;
-  if (room.gameMode === 'relay2v2') room.maxPlayers = 4;
+  if (room.gameMode === 'relay2v2') room.maxPlayers = modeDefinition.maxPlayers;
   room.currentTurnKey ??= null;
   if (!Number.isInteger(room.relaySolvedRounds) || room.relaySolvedRounds < 0) room.relaySolvedRounds = 0;
   if (!Array.isArray(room.relayGuesses)) room.relayGuesses = [];

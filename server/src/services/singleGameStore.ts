@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { evalCommandScript, redis, redisKey } from '../redis';
 import { GuessFeedback } from '../types';
+import { isSingleGameVariant, type SingleGameVariant } from './gameModes';
 
 export type SingleGameMode = string;
 export type SingleGameKind = 'single' | 'daily';
@@ -12,6 +13,7 @@ export interface SingleGameState {
   userId: number | null;
   guestKey: string | null;
   mode: SingleGameMode;
+  variant?: SingleGameVariant;
   targetPlayerId: number;
   dailyChallengeId?: number;
   guesses: GuessFeedback[];
@@ -31,7 +33,15 @@ function gameKey(id: string): string {
   return redisKey(`single:game:${id}`);
 }
 
-function activeKey(identityKey: string, mode: SingleGameMode): string {
+function activeKey(
+  identityKey: string,
+  mode: SingleGameMode,
+  variant: SingleGameVariant = 'classic'
+): string {
+  return redisKey(`single:active:${identityKey}:${mode}:${variant}`);
+}
+
+function legacyActiveKey(identityKey: string, mode: SingleGameMode): string {
   return redisKey(`single:active:${identityKey}:${mode}`);
 }
 
@@ -42,6 +52,7 @@ function requiredRedis() {
 }
 
 function normalizeGuessTimes(game: SingleGameState): void {
+  if (!isSingleGameVariant(game.variant)) game.variant = 'classic';
   game.guessTimes = game.guessTimes.map((value) => (
     typeof value === 'number' && Number.isFinite(value) && value >= 0
       ? Math.floor(value)
@@ -58,12 +69,15 @@ export async function createOrResumeSingleGameWithStatus(input: {
   userId: number | null;
   guestKey: string | null;
   mode: SingleGameMode;
+  /** Gameplay variant; mode remains the difficulty key for compatibility. */
+  variant?: SingleGameVariant;
   targetPlayerId: number;
   kind?: SingleGameKind;
   expiresAt?: number;
   dailyChallengeId?: number;
 }): Promise<{ game: SingleGameState; created: boolean }> {
-  const existing = await loadActiveSingleGame(input.identityKey, input.mode);
+  const variant = input.variant ?? 'classic';
+  const existing = await loadActiveSingleGame(input.identityKey, input.mode, variant);
   if (existing) return { game: existing, created: false };
 
   const now = Date.now();
@@ -74,6 +88,7 @@ export async function createOrResumeSingleGameWithStatus(input: {
     userId: input.userId,
     guestKey: input.guestKey,
     mode: input.mode,
+    variant,
     targetPlayerId: input.targetPlayerId,
     dailyChallengeId: input.dailyChallengeId,
     guesses: [],
@@ -88,16 +103,18 @@ export async function createOrResumeSingleGameWithStatus(input: {
 
 export async function loadActiveSingleGame(
   identityKey: string,
-  mode: SingleGameMode
+  mode: SingleGameMode,
+  variant: SingleGameVariant = 'classic'
 ): Promise<SingleGameState | null> {
   const client = requiredRedis();
-  const active = activeKey(identityKey, mode);
-  const existingId = await client.get(active);
+  const active = activeKey(identityKey, mode, variant);
+  const existingId = await client.get(active)
+    || (variant === 'classic' ? await client.get(legacyActiveKey(identityKey, mode)) : null);
   if (!existingId) return null;
   // Restoring after a refresh must not extend the inactivity window.
   const existing = await loadSingleGame(existingId, identityKey);
   if (existing) return existing;
-  await client.del(active);
+  await client.del([active, legacyActiveKey(identityKey, mode)]);
   return null;
 }
 
@@ -130,23 +147,29 @@ export async function saveSingleGame(game: SingleGameState): Promise<void> {
   game.lastActiveAt = Date.now();
   const expiresAt = game.expiresAt ?? game.lastActiveAt + SINGLE_GAME_TTL_SECONDS * 1000;
   const ttlSeconds = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000));
-  await client.multi()
+  const transaction = client.multi()
     .set(gameKey(game.id), JSON.stringify(game), { EX: ttlSeconds })
-    .set(activeKey(game.identityKey, game.mode), game.id, { EX: ttlSeconds })
+    .set(activeKey(game.identityKey, game.mode, game.variant), game.id, { EX: ttlSeconds });
+  if (game.variant === 'classic') transaction.del(legacyActiveKey(game.identityKey, game.mode));
+  await transaction
     .zAdd(redisKey('presence:single'), { score: expiresAt, value: game.id })
     .exec();
 }
 
 export async function deleteSingleGame(game: SingleGameState): Promise<void> {
-  const active = activeKey(game.identityKey, game.mode);
+  const active = activeKey(game.identityKey, game.mode, game.variant);
+  const legacy = legacyActiveKey(game.identityKey, game.mode);
   await evalCommandScript(
-    'single-game-delete-v1',
-    `redis.call('ZREM', KEYS[3], ARGV[1])
+    'single-game-delete-v2',
+    `redis.call('ZREM', KEYS[4], ARGV[1])
      if redis.call('get', KEYS[1]) == ARGV[1] then
-       return redis.call('del', KEYS[1], KEYS[2])
+       redis.call('del', KEYS[1], KEYS[2])
+     end
+     if redis.call('get', KEYS[3]) == ARGV[1] then
+       redis.call('del', KEYS[3])
      end
      return redis.call('del', KEYS[2])`,
-    [active, gameKey(game.id), redisKey('presence:single')],
+    [active, gameKey(game.id), legacy, redisKey('presence:single')],
     [game.id]
   );
 }
