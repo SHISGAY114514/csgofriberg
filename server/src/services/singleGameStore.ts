@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { evalCommandScript, redis, redisKey } from '../redis';
 import { GuessFeedback } from '../types';
 import { isSingleGameVariant, type SingleGameVariant } from './gameModes';
+import type { SoupState } from './turtleSoup';
 
 export type SingleGameMode = string;
 export type SingleGameKind = 'single' | 'daily';
@@ -14,6 +15,7 @@ export interface SingleGameState {
   guestKey: string | null;
   mode: SingleGameMode;
   variant?: SingleGameVariant;
+  soup?: SoupState;
   targetPlayerId: number;
   dailyChallengeId?: number;
   guesses: GuessFeedback[];
@@ -73,6 +75,7 @@ export async function createOrResumeSingleGameWithStatus(input: {
   variant?: SingleGameVariant;
   targetPlayerId: number;
   kind?: SingleGameKind;
+  soup?: SoupState;
   expiresAt?: number;
   dailyChallengeId?: number;
 }): Promise<{ game: SingleGameState; created: boolean }> {
@@ -90,6 +93,7 @@ export async function createOrResumeSingleGameWithStatus(input: {
     mode: input.mode,
     variant,
     targetPlayerId: input.targetPlayerId,
+    soup: input.soup,
     dailyChallengeId: input.dailyChallengeId,
     guesses: [],
     guessTimes: [],
@@ -114,7 +118,7 @@ export async function loadActiveSingleGame(
   // Restoring after a refresh must not extend the inactivity window.
   const existing = await loadSingleGame(existingId, identityKey);
   if (existing) return existing;
-  await client.del([active, legacyActiveKey(identityKey, mode)]);
+  await client.del(variant === 'classic' ? [active, legacyActiveKey(identityKey, mode)] : [active]);
   return null;
 }
 

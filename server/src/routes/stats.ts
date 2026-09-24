@@ -1,3 +1,5 @@
+import { soupReplay } from '../services/turtleSoup';
+import { singleGameVariantSchema, type SingleGameVariant } from '../services/gameModes';
 import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db/knex';
@@ -64,14 +66,15 @@ function singleSummary(row: any) {
   };
 }
 
-function singleAggregate(query: ReturnType<typeof db>) {
+function singleAggregate(query: ReturnType<typeof db>, variant: SingleGameVariant) {
+  const countColumn = variant === 'turtle-soup' ? 'question_count' : 'guess_count';
   return query
     .whereNot('status', 'playing')
     .first()
     .count({ totalGames: 'id' })
     .sum({ wins: db.raw("case when status = 'won' then 1 else 0 end") })
-    .avg({ avgGuesses: db.raw("case when status = 'won' then guess_count else null end") })
-    .min({ bestGuesses: db.raw("case when status = 'won' then guess_count else null end") });
+    .avg({ avgGuesses: db.raw("case when status = 'won' then ?? else null end", [countColumn]) })
+    .min({ bestGuesses: db.raw("case when status = 'won' then ?? else null end", [countColumn]) });
 }
 
 function multiAvgWinningGuesses(row: any): number | null {
@@ -121,10 +124,10 @@ function answerView(target: Player) {
   };
 }
 
-async function globalStats(difficulties: string[]) {
-  return cached(globalStatsCacheKey(difficulties), 60, async () => {
+async function globalStats(difficulties: string[], variant: SingleGameVariant) {
+  return cached(globalStatsCacheKey(difficulties, variant), 60, async () => {
     const [single, multi, multiGuesses, users, firstGuess] = await Promise.all([
-      singleAggregate(db('games').whereIn('mode', difficulties)),
+      singleAggregate(db('games').where('variant', variant).whereIn('mode', difficulties), variant),
       db('match_records').whereIn('db_type', difficulties).where('game_mode', 'classic').count({ total: 'id' }).first(),
       db('match_players as mp')
         .join('match_records as m', 'm.id', 'mp.match_id')
@@ -134,7 +137,7 @@ async function globalStats(difficulties: string[]) {
         .sum({ winningGuessSum: 'mp.winning_guess_sum' })
         .sum({ winningRounds: 'mp.winning_rounds' }),
       db('users').count({ total: 'id' }).first(),
-      firstGuessSummary(db('games').whereIn('mode', difficulties)),
+      firstGuessSummary(db('games').where('variant', variant).whereIn('mode', difficulties)),
     ]);
     return {
       ...singleSummary(single),
@@ -146,11 +149,11 @@ async function globalStats(difficulties: string[]) {
   });
 }
 
-async function personalStats(owner: Owner, identityKey: string, difficulties: string[]) {
-  return cached(personalStatsCacheKey(identityKey, difficulties), 30, async () => {
+async function personalStats(owner: Owner, identityKey: string, difficulties: string[], variant: SingleGameVariant) {
+  return cached(personalStatsCacheKey(identityKey, difficulties, variant), 30, async () => {
     const [single, firstGuess, multi] = await Promise.all([
-      singleAggregate(db('games').where(owner).whereIn('mode', difficulties)),
-      firstGuessSummary(db('games').where(owner).whereIn('mode', difficulties)),
+      singleAggregate(db('games').where(owner).where('variant', variant).whereIn('mode', difficulties), variant),
+      firstGuessSummary(db('games').where(owner).where('variant', variant).whereIn('mode', difficulties)),
       db('match_players as mp')
         .join('match_records as m', 'm.id', 'mp.match_id')
         .where('mp.player_key', identityKey)
@@ -174,10 +177,12 @@ async function personalStats(owner: Owner, identityKey: string, difficulties: st
 
 const replayListQuery = z.object({
   type: z.enum(['single', 'multi']).default('single'),
+  variant: singleGameVariantSchema.default('classic'),
   page: z.coerce.number().int().min(1).max(500).default(1),
   pageSize: z.coerce.number().int().min(5).max(30).default(15),
 });
 const statsSummaryQuery = z.object({
+  variant: singleGameVariantSchema.default('classic'),
   difficulties: z.string().trim().min(1).max(128).optional(),
 });
 const replayIdParams = z.object({ id: z.coerce.number().int().positive() });
@@ -229,7 +234,7 @@ router.get(
     const available: string[] = DIFFICULTY_LEVELS
       .filter((difficulty) => difficulty.isEnabled && isDifficultyAvailable(difficulty.key))
       .map((difficulty) => difficulty.key);
-    const raw = (req.query as unknown as z.infer<typeof statsSummaryQuery>).difficulties;
+    const { difficulties: raw, variant } = req.query as unknown as z.infer<typeof statsSummaryQuery>;
     const requested = raw
       ? [...new Set(raw.split(',').map((difficulty) => difficulty.trim()).filter(Boolean))]
       : available;
@@ -238,11 +243,11 @@ router.get(
     }
     const difficulties = available.filter((difficulty) => requested.includes(difficulty));
     const [personal, global] = await Promise.all([
-      personalStats(owner, identityKey, difficulties),
-      globalStats(difficulties),
+      personalStats(owner, identityKey, difficulties, variant),
+      globalStats(difficulties, variant),
     ]);
 
-    res.json({ difficulties, personal, global });
+    res.json({ variant, countMetric: variant === 'turtle-soup' ? 'questions' : 'guesses', difficulties, personal, global });
   })
 );
 
@@ -258,7 +263,7 @@ router.get(
   }),
   validateQuery(replayListQuery),
   asyncHandler(async (req, res) => {
-    const { type, page, pageSize } = req.query as unknown as z.infer<typeof replayListQuery>;
+    const { type, page, pageSize, variant } = req.query as unknown as z.infer<typeof replayListQuery>;
     const offset = (page - 1) * pageSize;
 
     if (type === 'single') {
@@ -267,6 +272,7 @@ router.get(
       const rows = await db('games as g')
         .join('players as p', 'p.id', 'g.target_player_id')
         .where(qualifiedOwner(owner, 'g'))
+        .where('g.variant', variant)
         .whereNot('g.status', 'playing')
         .orderBy('g.finished_at', 'desc')
         .orderBy('g.id', 'desc')
@@ -278,6 +284,8 @@ router.get(
           'g.variant',
           'g.status',
           'g.guess_count as guessCount',
+          'g.question_count as questionCount',
+          'g.answer_snapshot',
           'g.finished_at as finishedAt',
           'p.nickname as answer'
         );
@@ -287,7 +295,10 @@ router.get(
         page,
         pageSize,
         hasNext,
-        items: rows.slice(0, pageSize).map((row) => ({ type: 'single', ...row })),
+        items: rows.slice(0, pageSize).map(({ answer_snapshot, ...row }) => ({
+          type: 'single', ...row, answer: variant === 'turtle-soup' && answer_snapshot
+            ? JSON.parse(answer_snapshot).nickname : row.answer,
+        })),
       });
     }
 
@@ -409,6 +420,10 @@ router.get(
       .whereNot('status', 'playing')
       .first();
     if (!game) throw new HttpError(404, 'GAME_NOT_FOUND');
+    if (game.variant === 'turtle-soup') {
+      res.json(soupReplay(game));
+      return;
+    }
     const target = getPlayer(Number(game.target_player_id));
     if (!target) throw new HttpError(404, 'PLAYER_NOT_FOUND');
 

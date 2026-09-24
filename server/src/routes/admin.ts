@@ -1,3 +1,4 @@
+import { soupReplay } from '../services/turtleSoup';
 import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { z } from 'zod';
@@ -730,6 +731,7 @@ router.get(
       .whereNot('status', 'playing')
       .first();
     if (!game) throw new HttpError(404, 'GAME_NOT_FOUND');
+    if (game.variant === 'turtle-soup') { res.json(soupReplay(game)); return; }
     const target = getPlayer(Number(game.target_player_id));
     if (!target) throw new HttpError(404, 'PLAYER_NOT_FOUND');
 
@@ -946,6 +948,7 @@ router.get(
             : await db('games as g')
               .join('users as u', 'u.id', 'g.user_id')
               .where('g.mode', difficulty.key)
+              .where('g.variant', 'classic')
               .whereNot('g.status', 'playing')
               .where((builder) => builder.where('u.leaderboard_hidden', false).orWhere('u.id', id))
               .groupBy('u.id')
