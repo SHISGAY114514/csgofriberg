@@ -20,6 +20,11 @@
 .soup-question-controls { display: flex; gap: .5rem; }
 .soup-question-controls .input { min-width: 0; flex: 1; width: 100%; }
 .soup-question-controls .btn { flex-shrink: 0; min-height: 2.6rem; }
+.soup-option-input { position: relative; flex: 1; min-width: 0; }
+.soup-option-input .soup-option-list { top: calc(100% + 4px); bottom: auto; left: 0; right: 0; margin: 0; max-height: min(15rem, 35dvh); }
+.soup-option-list li { overflow-wrap: anywhere; }
+.soup-option-list small { display: block; color: var(--text-sec); font-size: .75rem; margin-top: .2rem; }
+.soup-option-list li.active small, .soup-option-list li:hover small { color: inherit; }
 .soup-no-team { border: 0; background: transparent; color: var(--text-sec); padding: .3rem 0; cursor: pointer; text-decoration: underline; font-size: .75rem; }
 .soup-giveup { width: 100%; margin: .5rem 0 1rem; }
 .soup-rules-entry { display: flex; justify-content: center; width: 100%; margin: 1rem auto; }

@@ -1,11 +1,12 @@
 import GameRules from '../components/GameRules';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Soup, RotateCcw, Home, Flag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Page from '../components/Page';
 import GuessInputBar from '../components/GuessInputBar';
 import SoupLog from '../components/SoupLog';
+import SoupOptionInput from '../components/SoupOptionInput';
 import { PlayerInfoTable } from '../components/AnswerOverlay';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useAuth } from '../store/auth';
@@ -57,7 +58,10 @@ function SoupGamePage({ mode }: { mode: string }) {
   const disabled = busy || expired || Boolean(error) || Boolean(pending) || game?.status !== 'playing';
   const questionDisabled = disabled || !options || !game?.remainingQuestions;
   const hint = !game?.guessUnlocked ? t('soup.locked') : game.remainingQuestions === 0 ? t('soup.lastGuess') : t('soup.unlocked');
-  const regions = [...new Set(options?.countries.map((c) => c.region) ?? [])].sort();
+  const teamOptions = useMemo(() => options?.teams.map((team) => ({ value: team, label: team || t('soup.noTeam') })) ?? [], [options, t]);
+  const countryOptions = useMemo(() => options?.countries.map((country) => ({
+    value: country.nationality, label: countryLabel(t, country.nationality), group: regionLabel(t, country.region),
+  })) ?? [], [options, t]);
 
   return <Page title={`${t('soup.title')} · ${difficultyLabel(t, mode)}`} icon={<Soup size={18} />} className="soup-page" showHome={false}
     actions={<>
@@ -88,28 +92,29 @@ function SoupGamePage({ mode }: { mode: string }) {
           if (questionDisabled || values[field] === undefined || (values[field] === '' && field !== 'team')) return;
           const raw = values[field]!;
           if (field === 'team' && !options?.teams.includes(raw)) return;
+          if (field === 'nationality' && !options?.countries.some((country) => country.nationality === raw)) return;
           const value = field === 'isActive' ? raw === 'true' : ['age', 'majorChampionships', 'majorAppearances'].includes(field) ? Number(raw) : raw;
           void submit('question', { field, value });
         }}>
           <label htmlFor={`soup-${field}`}>{t(`soup.${field}`)}</label>
           <div className="soup-question-controls">
-            {field === 'nationality' ? <select className="input" id={`soup-${field}`} disabled={Boolean(questionDisabled)} value={values[field] ?? ''} onChange={(e) => setValues((v) => ({ ...v, [field]: e.target.value }))} required>
-              <option value="">{t('soup.select')}</option>{regions.map((region) => <optgroup key={region} label={regionLabel(t, region)}>{options?.countries.filter((c) => c.region === region).map((c) => <option key={c.nationality} value={c.nationality}>{countryLabel(t, c.nationality)}</option>)}</optgroup>)}
-            </select> : field === 'role' || field === 'isActive' ? <select className="input" id={`soup-${field}`} disabled={Boolean(questionDisabled)} value={values[field] ?? ''} onChange={(e) => setValues((v) => ({ ...v, [field]: e.target.value }))} required>
+            {field === 'team' || field === 'nationality' ? <SoupOptionInput key={`${game.gameId}:${field}`}
+              id={`soup-${field}`} options={field === 'team' ? teamOptions : countryOptions}
+              value={values[field]} onChange={(value) => setValues((v) => ({ ...v, [field]: value }))}
+              disabled={Boolean(questionDisabled)} placeholder={t(field === 'team' ? 'soup.searchTeam' : 'soup.searchCountry')} />
+            : field === 'role' || field === 'isActive' ? <select className="input" id={`soup-${field}`} disabled={Boolean(questionDisabled)} value={values[field] ?? ''} onChange={(e) => setValues((v) => ({ ...v, [field]: e.target.value }))} required>
               <option value="">{t('soup.select')}</option>{(field === 'role' ? ['Rifler', 'AWPer', 'Coach'] : ['true', 'false']).map((v) => <option key={v} value={v}>{field === 'role' ? playerRoleLabel(v) : t(v === 'true' ? 'soup.active' : 'soup.retired')}</option>)}
-            </select> : <input className="input" id={`soup-${field}`} type={field === 'team' ? 'text' : 'number'}
-              list={field === 'team' ? 'soup-teams' : undefined} placeholder={field === 'team' ? t('soup.searchTeam') : field === 'age' ? '25' : '0'}
-              disabled={Boolean(questionDisabled)} value={values[field] ?? ''} required={field !== 'team'}
+            </select> : <input className="input" id={`soup-${field}`} type="number"
+              placeholder={field === 'age' ? '25' : '0'}
+              disabled={Boolean(questionDisabled)} value={values[field] ?? ''} required
               min={field === 'age' ? 1 : 0} max={field === 'age' ? 120 : 1000} step={1}
               onChange={(e) => {
-                e.target.setCustomValidity(field === 'team' && !options?.teams.includes(e.target.value) ? t('errors.SOUP_INVALID_OPTION') : '');
                 setValues((v) => ({ ...v, [field]: e.target.value }));
               }} />}
             <button className="btn" disabled={Boolean(questionDisabled) || values[field] === undefined} aria-label={`${t('soup.ask')} · ${t(`soup.${field}`)}`}>{t('soup.ask')}</button>
           </div>
-          {field === 'team' && options?.teams.includes('') && <button className="soup-no-team" type="button" disabled={Boolean(questionDisabled)} onClick={() => { setValues((v) => ({ ...v, team: '' })); (document.getElementById('soup-team') as HTMLInputElement)?.setCustomValidity(''); }}>{t('soup.noTeam')}</button>}
+          {field === 'team' && options?.teams.includes('') && <button className="soup-no-team" type="button" disabled={Boolean(questionDisabled)} onClick={() => setValues((v) => ({ ...v, team: '' }))}>{t('soup.noTeam')}</button>}
         </form>)}
-        <datalist id="soup-teams">{options?.teams.filter(Boolean).map((team) => <option key={team} value={team} />)}</datalist>
         <button className="btn btn-warning soup-giveup" disabled={disabled} onClick={() => void giveup()}><Flag size={15} />{t('soup.giveup')}</button>
         <div className="soup-rules-entry"><GameRules variant="turtle-soup" /></div>
       </aside>

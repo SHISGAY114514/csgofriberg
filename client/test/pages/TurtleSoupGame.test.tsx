@@ -6,6 +6,7 @@ import { renderAtRoute } from '../render';
 import TurtleSoupGame from '../../src/pages/TurtleSoupGame';
 import { useAuth } from '../../src/store/auth';
 import type { SoupGame } from '../../src/turtleSoup';
+import i18n from '../../src/i18n';
 
 const { get, post } = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('../../src/api/client', () => ({ api: { get, post }, errMsg: () => 'request failed' }));
@@ -19,7 +20,9 @@ const key = 'csgofriberg_soup_session_guest_beginner';
 const base: SoupGame = { gameId: 'soup1', mode: 'beginner', variant: 'turtle-soup', version: 0,
   status: 'playing', maxQuestions: 18, remainingQuestions: 18, questionCount: 0, guessCount: 0, guessUnlocked: false, events: [] };
 const answer = { id: 2, nickname: 'Snapshot Answer', team: 'Team', nationality: 'CN', region: 'Asia', age: 25, role: 'Rifler', isActive: true, majorChampionships: 1, majorAppearances: 5 };
-const options = { teams: ['Team', ''], countries: [{ nationality: 'CN', region: 'Asia' }] };
+const options = { teams: ['Team', 'Team Two', 'Other', ''], countries: [
+  { nationality: '中国', region: '亚洲' }, { nationality: '丹麦', region: '欧洲' },
+] };
 let state: SoupGame;
 function renderGame(mode = 'beginner') {
   return renderAtRoute(<TurtleSoupGame />, { route: `/turtle-soup/${mode}`, path: '/turtle-soup/:mode',
@@ -48,6 +51,92 @@ describe('Turtle Soup interactions', () => {
     renderGame('hard');
     expect(await screen.findByText('lobby')).toBeInTheDocument();
     expect(post).not.toHaveBeenCalled();
+  });
+
+  it('only shows matching team suggestions after typing, and selection alone does not ask', async () => {
+    renderGame(); await ready();
+    const user = userEvent.setup();
+    const input = screen.getByPlaceholderText('输入战队关键字');
+    const button = within(input.closest('form')!).getByRole('button', { name: '提问 · 战队' });
+    await user.click(input);
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    await user.type(input, '   ');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    await user.clear(input);
+    await user.type(input, 'tea');
+    expect(within(screen.getByRole('listbox')).getAllByRole('option')).toHaveLength(2);
+    expect(screen.queryByRole('option', { name: 'Other' })).not.toBeInTheDocument();
+    expect(button).toBeDisabled();
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(input).toHaveValue('Team Two');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(post).toHaveBeenCalledTimes(1); // Only game/start, no question on selection.
+    await user.click(button);
+    await ready();
+    expect(post).toHaveBeenLastCalledWith('/game/soup1/question', {
+      field: 'team', value: 'Team Two', version: 0, requestId: expect.any(String),
+    });
+    expect(post.mock.calls.filter(([url]) => url.endsWith('/question'))).toHaveLength(1);
+    await user.clear(input);
+    expect(button).toBeDisabled();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '无战队' }));
+    expect(input).toHaveValue('无战队');
+    await user.click(button);
+    await ready();
+    expect(post.mock.calls.at(-1)![1].value).toBe('');
+  });
+
+  it.each([['zh', '中'], ['en', 'Chi'], ['ja', '中']])('searches translated countries and submits the snapshot value (%s)', async (language, query) => {
+    await i18n.changeLanguage(language);
+    renderGame();
+    const input = await screen.findByPlaceholderText(i18n.t('soup.searchCountry'));
+    await waitFor(() => expect(input).toBeEnabled());
+    const user = userEvent.setup();
+    const form = input.closest('form')!;
+    const button = within(form).getByRole('button');
+    await user.click(input);
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    await user.type(input, query);
+    expect(within(screen.getByRole('listbox')).getAllByRole('option')).toHaveLength(1);
+    await user.click(within(screen.getByRole('listbox')).getByRole('option'));
+    expect(post).toHaveBeenCalledTimes(1);
+    await user.click(button);
+    await waitFor(() => expect(input).toBeEnabled());
+    expect(post).toHaveBeenLastCalledWith('/game/soup1/question', {
+      field: 'nationality', value: '中国', version: 0, requestId: expect.any(String),
+    });
+    await user.clear(input);
+    await user.type(input, 'invalid-country');
+    expect(button).toBeDisabled();
+    fireEvent.submit(form);
+    expect(post.mock.calls.filter(([url]) => url.endsWith('/question'))).toHaveLength(1);
+    expect(document.getElementById('soup-role')?.tagName).toBe('SELECT');
+    expect(document.getElementById('soup-isActive')?.tagName).toBe('SELECT');
+  });
+
+  it('handles composition, Escape, Tab completion and blur without accidental questions', async () => {
+    renderGame(); await ready();
+    const user = userEvent.setup();
+    const input = screen.getByPlaceholderText('输入国家／地区关键字');
+    await user.click(input);
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: '中' } });
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(post).toHaveBeenCalledTimes(1);
+    fireEvent.compositionEnd(input);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    await user.keyboard('{ArrowDown}{Tab}');
+    expect(input).toHaveValue('中国');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(post).toHaveBeenCalledTimes(1);
+    await user.click(input);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    await user.click(screen.getByLabelText('年龄'));
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
   it('unlocks guessing from server feedback and locks again after a wrong guess', async () => {
