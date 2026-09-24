@@ -38,6 +38,41 @@ async function request(
 }
 
 describe('admin user management', () => {
+  it('keeps soup list answers and replay snapshots stable for users and guests', async () => {
+    const stamp = Date.now();
+    const [admin] = await db('users').insert({ username: `soup-admin-${stamp}`, password_hash: 'test', role: 'admin' }).returning(['id', 'token_version']);
+    const guestKey = `soup-admin-guest-${stamp}`;
+    await recordGuestSeen(guestKey, guestNameFromKey(guestKey));
+    const guest = await db('guest_accounts').where({ guest_key: guestKey }).first();
+    const [player] = await db('players').insert({ nickname: `soup-before-${stamp}`, nationality: '瑞典', age: 25 }).returning('id');
+    const answer = { id: player.id, nickname: `soup-before-${stamp}`, age: 25 };
+    const events = [{ type: 'question', field: 'age', value: 25, level: 'correct', requestId: 'snapshot-question', elapsedMs: 100 }, { type: 'guess', playerId: player.id, nickname: answer.nickname, correct: true, requestId: 'snapshot-guess', elapsedMs: 200 }];
+    try {
+      await db('games').insert([ { user_id: admin.id }, { guest_key: guestKey } ].map((owner) => ({
+        ...owner, target_player_id: player.id, mode: 'beginner', variant: 'turtle-soup', status: 'won',
+        question_count: 7, guess_count: 2, answer_snapshot: JSON.stringify(answer), soup_events: JSON.stringify(events), finished_at: db.fn.now(),
+      })));
+      await db('players').where({ id: player.id }).update({ nickname: `soup-after-${stamp}`, age: 30 });
+      const cookie = authCookie(admin);
+      for (const path of [`/api/admin/users/${admin.id}/games`, `/api/admin/guests/${guest.id}/games`]) {
+        const list = await request(path, cookie);
+        expect(list.response.status).toBe(200);
+        expect(list.data.items).toHaveLength(1);
+        expect(list.data.items[0]).toMatchObject({ variant: 'turtle-soup', answer: answer.nickname, questionCount: 7, guessCount: 2 });
+        expect(list.data.items[0]).not.toHaveProperty('answer_snapshot');
+      }
+      const game = await db('games').where({ user_id: admin.id }).first();
+      const replay = await request(`/api/admin/users/${admin.id}/games/${game.id}/replay`, cookie);
+      expect(replay.response.status).toBe(200);
+      expect(replay.data).toMatchObject({ answer, events, questionCount: 7, guessCount: 2 });
+    } finally {
+      await db('games').where({ target_player_id: player.id }).del();
+      await db('players').where({ id: player.id }).del();
+      await db('guest_accounts').where({ guest_key: guestKey }).del();
+      await db('users').where({ id: admin.id }).del();
+    }
+  });
+
   beforeAll(async () => {
     await initDb();
     await initRedis();

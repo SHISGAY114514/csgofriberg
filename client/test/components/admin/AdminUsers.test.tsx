@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../../src/api/client';
@@ -81,6 +81,26 @@ describe('AdminUsers', () => {
 
     expect(api.patch).toHaveBeenCalledWith('/admin/users/7/leaderboard-visibility', { hidden: true });
     expect(screen.getAllByText('已隐藏').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it.each(['user', 'guest'])('labels soup questions and name guesses separately in %s history', async (kind) => {
+    const original = vi.mocked(api.get).getMockImplementation()!;
+    vi.mocked(api.get).mockImplementation(async (...args) => {
+      if (String(args[0]).endsWith('/games')) return { data: { items: [{
+        type: 'single', id: 41, mode: 'beginner', variant: 'turtle-soup', status: 'won',
+        questionCount: 7, guessCount: 2, answer: 'Saved nickname', finishedAt: '2026-09-25T00:00:00Z',
+      }], hasNext: false } } as never;
+      return original(...args);
+    });
+    const user = userEvent.setup();
+    renderWithProviders(kind === 'user' ? <AdminUsers /> : <AdminGuests />);
+    await user.click(await screen.findByRole('button', { name: /详情/ }));
+    await user.click(screen.getByRole('tab', { name: '对局记录' }));
+    const row = await screen.findByRole('article');
+    expect(row).toHaveTextContent('海龟汤');
+    expect(row).toHaveTextContent('Saved nickname');
+    expect(within(row).getByText('提问次数')).toHaveTextContent('7');
+    expect(within(row).getByText('猜名次数')).toHaveTextContent('2');
   });
 
   it('restricts multiplayer matchmaking from the analysis tab', async () => {
