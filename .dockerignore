@@ -10,6 +10,7 @@ dist
 **/dist
 .pnpm-store
 .docker-runtime-test
+.local-*
 pow-wasm/target
 origin
 data/imports
