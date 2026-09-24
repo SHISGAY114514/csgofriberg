@@ -1,3 +1,4 @@
+import GameRules from '../components/GameRules';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Soup, Play, Check } from 'lucide-react';
@@ -29,6 +30,6 @@ export default function TurtleSoupLobby() {
       </button>;
     })}</div>
     <div className="single-lobby-action"><button className="btn btn-lg btn-green" onClick={() => navigate(`/turtle-soup/${selected}`)}><Play size={17} />{t('singleLobby.start')}</button></div>
-    <details className="card soup-rules"><summary>{t('soup.rules')}</summary><p>{t('soup.rulesText')}</p></details>
+    <div className="soup-rules-entry"><GameRules variant="turtle-soup" /></div>
   </Page>;
 }

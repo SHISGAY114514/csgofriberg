@@ -1,5 +1,6 @@
 export const turtleSoupTranslations = {
   zh: {
+    questionBudget: '{{count}} 次属性提问',
     exitMessage: '退出或重新开始会结束当前对局，不计入战绩。确定继续吗？',
     giveupMessage: '认输将揭晓答案，并计为一场败局。确定认输吗？',
     expired: '本局已过期、退出或不属于当前身份。请重新开始；已结算的历史仍可在战绩中查看。',
@@ -23,6 +24,7 @@ export const turtleSoupTranslations = {
     elapsed: '{{seconds}} 秒', stats: '海龟汤战绩', leaderboard: '海龟汤排行榜',
   },
   en: {
+    questionBudget: '{{count}} attribute questions',
     exitMessage: 'Leaving or restarting ends this game without recording a result. Continue?',
     giveupMessage: 'Giving up reveals the answer and records a loss. Give up?',
     expired: 'This game expired, was exited, or belongs to another session. Start again; recorded results remain in your stats.',
@@ -46,6 +48,7 @@ export const turtleSoupTranslations = {
     elapsed: '{{seconds}}s', stats: 'Turtle Soup stats', leaderboard: 'Turtle Soup leaderboard',
   },
   ja: {
+    questionBudget: '属性の質問は {{count}} 回',
     exitMessage: '退出や再開は現在の対局を終了し、戦績には記録されません。続けますか？',
     giveupMessage: '降参すると答えが表示され、敗北として記録されます。降参しますか？',
     expired: '対局の期限が切れたか、退出済み、または別のセッションの対局です。再開してください。記録済みの結果は戦績から確認できます。',

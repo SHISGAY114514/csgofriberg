@@ -1,3 +1,4 @@
+import GameRules from '../components/GameRules';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Soup, RotateCcw, Home, Flag } from 'lucide-react';
@@ -110,7 +111,7 @@ function SoupGamePage({ mode }: { mode: string }) {
         </form>)}
         <datalist id="soup-teams">{options?.teams.filter(Boolean).map((team) => <option key={team} value={team} />)}</datalist>
         <button className="btn btn-warning soup-giveup" disabled={disabled} onClick={() => void giveup()}><Flag size={15} />{t('soup.giveup')}</button>
-        <details className="soup-rules"><summary>{t('soup.rules')}</summary><p>{t('soup.rulesText')}</p></details>
+        <div className="soup-rules-entry"><GameRules variant="turtle-soup" /></div>
       </aside>
     </div>}
   </Page>;
