@@ -1,3 +1,5 @@
+import { useAuth } from '../store/auth';
+import { useSearchParams } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BarChart3, Check, ChevronDown, ChevronLeft, ChevronRight, Play, Swords, User, Users } from 'lucide-react';
 import Page from '../components/Page';
@@ -41,6 +43,7 @@ interface SingleReplayItem {
   mode: string;
   status: string;
   guessCount: number;
+  questionCount?: number;
   finishedAt: string;
   answer: string;
 }
@@ -149,7 +152,16 @@ function StatsDifficultyMultiSelect({
 }
 
 export default function Stats() {
+  const [params] = useSearchParams();
+  const identity = useAuth((state) => state.user?.id ?? 'guest');
+  return <StatsContent key={`${identity}:${params.get('variant') ?? 'classic'}`} />;
+}
+
+function StatsContent() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const soup = searchParams.get('variant') === 'turtle-soup';
+  const variant = soup ? 'turtle-soup' : 'classic';
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>(STATS_DIFFICULTIES);
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [type, setType] = useState<ReplayType>('single');
@@ -157,6 +169,7 @@ export default function Stats() {
   const [items, setItems] = useState<Array<SingleReplayItem | MultiReplayItem>>([]);
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [replayError, setReplayError] = useState<string | null>(null);
   const [replay, setReplay] = useState<Replay | null>(null);
   const [replayLoadingId, setReplayLoadingId] = useState<number | null>(null);
   const [opponentStats, setOpponentStats] = useState<PlayerPerformanceStats | null>(null);
@@ -172,7 +185,7 @@ export default function Stats() {
     setStatsLoading(true);
     setStatsError(false);
     api.get<StatsResponse>('/stats/me', {
-      params: { difficulties: selectedDifficulties.join(',') },
+      params: { difficulties: selectedDifficulties.join(','), ...(soup ? { variant } : {}) },
     })
       .then((res) => {
         if (currentRequest === statsRequestId.current) setStats(res.data);
@@ -183,7 +196,7 @@ export default function Stats() {
       .finally(() => {
         if (currentRequest === statsRequestId.current) setStatsLoading(false);
       });
-  }, [selectedDifficulties]);
+  }, [selectedDifficulties, soup, variant]);
 
   useEffect(() => {
     loadStats();
@@ -192,19 +205,24 @@ export default function Stats() {
   const loadReplays = useCallback(async () => {
     const currentRequest = ++requestId.current;
     setLoading(true);
+    setReplayError(null);
     try {
       const res = await api.get<ReplayPage<SingleReplayItem | MultiReplayItem>>('/stats/replays', {
-        params: { type, page, pageSize: 15 },
+        params: { type: soup ? 'single' : type, page, pageSize: 15, ...(soup ? { variant } : {}) },
       });
       if (currentRequest !== requestId.current) return;
       setItems(res.data.items);
       setHasNext(res.data.hasNext);
     } catch (err) {
-      if (currentRequest === requestId.current) toast.error(errMsg(err));
+      if (currentRequest === requestId.current) {
+        setReplayError(errMsg(err));
+        setItems([]);
+        setHasNext(false);
+      }
     } finally {
       if (currentRequest === requestId.current) setLoading(false);
     }
-  }, [page, type]);
+  }, [page, type, soup, variant]);
 
   useEffect(() => { void loadReplays(); }, [loadReplays]);
 
@@ -215,14 +233,17 @@ export default function Stats() {
   };
 
   const openReplay = async (item: SingleReplayItem | MultiReplayItem) => {
+    const selection = requestId.current;
     setReplayLoadingId(item.id);
     setOpponentStats(null);
     try {
       if (item.type === 'single') {
         const res = await api.get<Omit<SingleReplay, 'type'>>(`/stats/games/${item.id}/replay`);
+        if (selection !== requestId.current) return;
         setReplay({ type: 'single', ...res.data });
       } else {
         const res = await api.get<Omit<MultiReplay, 'type'>>(`/stats/matches/${item.id}/replay`);
+        if (selection !== requestId.current) return;
         setReplay({ type: 'multi', ...res.data });
       }
     } catch (err) {
@@ -264,7 +285,8 @@ export default function Stats() {
     { key: 'mode', title: t('stats.mode'), render: (game) => difficultyLabel(t, game.mode) },
     { key: 'status', title: t('stats.result'), render: (game) => game.status === 'won'
       ? <Badge text={t('common.win')} color="green" /> : <Badge text={t('common.loss')} color="gray" /> },
-    { key: 'guessCount', title: t('stats.guesses') },
+    ...(soup ? [{ key: 'questionCount', title: t('soup.questionCount') }] : []),
+    { key: 'guessCount', title: t(soup ? 'soup.guessCount' : 'stats.guesses') },
     { key: 'answer', title: t('stats.answer') },
     { key: 'finishedAt', title: t('stats.time'), render: (game) => new Date(game.finishedAt).toLocaleString(currentLocale()) },
     { key: 'replay', title: t('stats.replay'), render: replayButton },
@@ -300,6 +322,17 @@ export default function Stats() {
   return (
     <Page title={t('stats.title')} icon={<BarChart3 size={17} />}>
       <div className="stats-content">
+        <div className="soup-mode-tabs" role="tablist" aria-label={t('leaderboard.modeLabel')}>
+          {(['classic', 'turtle-soup'] as const).map((value) => <button type="button" role="tab" key={value}
+            aria-selected={variant === value} className={`btn ${variant === value ? 'active' : ''}`}
+            onClick={() => {
+              if (variant === value) return;
+              statsRequestId.current++; requestId.current++;
+              setStats(null); setStatsLoading(true); setItems([]); setHasNext(false); setPage(1); setType('single'); setReplay(null);
+              setSearchParams(value === 'turtle-soup' ? { variant: value } : {});
+            }}>{t(value === 'turtle-soup' ? 'soup.shortTitle' : 'soup.classic')}</button>)}
+        </div>
+        {stats && statsError && <div role="alert"><p>{t('stats.loadFailed')}</p><button className="btn" disabled={statsLoading} onClick={loadStats}>{t('common.retry')}</button></div>}
         {!stats && statsLoading && (
           <section className="stats-difficulty-section" aria-busy="true">
             <div className="stats-difficulty-toolbar">
@@ -340,11 +373,13 @@ export default function Stats() {
                   [t('stats.singleGames'), stats.personal.totalGames],
                   [t('stats.singleWins'), stats.personal.wins],
                   [t('stats.singleWinRate'), `${(stats.personal.winRate * 100).toFixed(1)}%`],
-                  [t('stats.avgWinningGuesses'), formatAverage(stats.personal.avgGuesses)],
-                  [t('stats.bestGuess'), stats.personal.bestGuesses ?? '-'],
+                  [t(soup ? 'soup.avgQuestions' : 'stats.avgWinningGuesses'), formatAverage(stats.personal.avgGuesses)],
+                  [t(soup ? 'soup.bestQuestions' : 'stats.bestGuess'), stats.personal.bestGuesses ?? '-'],
+                  ...(!soup ? [
                   [t('stats.topFirstGuess'), formatFirstGuess(stats.personal.firstGuess)],
                   [t('stats.multiGamesWins'), `${stats.personal.multiGames} / ${stats.personal.multiWins}`],
                   [t('stats.multiAvgWinningGuesses'), formatAverage(stats.personal.multiAvgWinningGuesses)],
+                  ] as [string, string | number][] : []),
                 ]} />
               </div>
               <div className="card">
@@ -354,10 +389,12 @@ export default function Stats() {
                   [t('stats.singleGames'), stats.global.totalGames],
                   [t('stats.singleWins'), stats.global.wins],
                   [t('stats.globalWinRate'), `${(stats.global.winRate * 100).toFixed(1)}%`],
-                  [t('stats.avgWinningGuesses'), formatAverage(stats.global.avgGuesses)],
+                  [t(soup ? 'soup.avgQuestions' : 'stats.avgWinningGuesses'), formatAverage(stats.global.avgGuesses)],
+                  ...(!soup ? [
                   [t('stats.topFirstGuess'), formatFirstGuess(stats.global.firstGuess)],
                   [t('stats.multiGames'), stats.global.multiGames],
                   [t('stats.multiAvgWinningGuesses'), formatAverage(stats.global.multiAvgWinningGuesses)],
+                  ] as [string, string | number][] : []),
                 ]} />
               </div>
             </div>
@@ -367,17 +404,17 @@ export default function Stats() {
         <section className="card stats-recent-card">
           <div className="stats-replay-toolbar">
             <h3>{t('stats.personalReplays')}</h3>
-            <div className="stats-replay-segments" role="tablist" aria-label={t('stats.replayType')}>
+            {!soup && <div className="stats-replay-segments" role="tablist" aria-label={t('stats.replayType')}>
               <button type="button" role="tab" aria-selected={type === 'single'} className={type === 'single' ? 'active' : ''} onClick={() => chooseType('single')}>
                 <User size={15} />{t('stats.single')}
               </button>
               <button type="button" role="tab" aria-selected={type === 'multi'} className={type === 'multi' ? 'active' : ''} onClick={() => chooseType('multi')}>
                 <Swords size={15} />{t('stats.multi')}
               </button>
-            </div>
+            </div>}
           </div>
           <div className="stats-recent-table stats-replay-desktop-list">
-            {type === 'single' ? (
+            {soup || type === 'single' ? (
               <DataTable
                 columns={singleColumns}
                 rows={items.filter((item): item is SingleReplayItem => item.type === 'single')}
@@ -395,6 +432,7 @@ export default function Stats() {
               />
             )}
           </div>
+          {replayError && <div role="alert"><p>{replayError}</p><button className="btn" disabled={loading} onClick={() => void loadReplays()}>{t('common.retry')}</button></div>}
           <div className="stats-replay-mobile-list">
             {items.length ? items.map((item) => {
               const result = item.type === 'single' ? item.status : item.result;
@@ -419,7 +457,8 @@ export default function Stats() {
                   {item.type === 'single' ? (
                     <>
                       <span>{t('stats.answer')} <strong>{item.answer}</strong></span>
-                      <span>{t('stats.guesses')} <strong>{item.guessCount}</strong></span>
+                      {soup && <span>{t('soup.questionCount')} <strong>{item.questionCount}</strong></span>}
+                      <span>{t(soup ? 'soup.guessCount' : 'stats.guesses')} <strong>{item.guessCount}</strong></span>
                     </>
                   ) : (
                     <>

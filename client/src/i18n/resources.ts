@@ -1,6 +1,8 @@
+import { turtleSoupTranslations, turtleSoupErrors } from './turtleSoup';
 export const resources = {
   zh: {
     translation: {
+      soup: turtleSoupTranslations.zh,
       common: {
         brand: '弗一把',
         guest: '访客',
@@ -258,6 +260,7 @@ export const resources = {
         apiTokensTitle: '外部 API Token', apiTokensCount: '{{count}} 个有效 Token', apiTokenName: 'Token 名称', apiTokenNamePlaceholder: '例如：选手数据同步', apiTokenExpiresIn: '有效天数（1-365）', createApiToken: '生成 Token', creatingApiToken: '生成中...', apiTokenCreated: 'API Token 已生成', newApiToken: '新 API Token', apiTokenShownOnce: '明文仅显示这一次，请妥善保管。', copyApiToken: '复制 Token', apiTokenCopied: '已复制', apiTokenCopyFailed: '复制失败，请手动选择 Token', noApiTokens: '暂无有效 API Token', apiTokenCreatedAt: '创建：{{date}}', apiTokenExpiresAt: '到期：{{date}}', revokeApiToken: '撤销', revokeApiTokenTitle: '撤销 {{name}}？', revokeApiTokenMessage: '使用该 Token 的外部调用会立即失效。', apiTokenRevoked: 'API Token 已撤销',
       },
       errors: {
+        ...turtleSoupErrors.zh,
         GEETEST_REQUIRED: '请完成人机验证', GEETEST_FAILED: '人机验证失败，请重试', EMAIL_VERIFICATION_CODE_INVALID: '验证码无效或已过期',
         EMAIL_ALREADY_VERIFIED: '邮箱验证完成后不能再次修改', VALIDATION_FAILED: '输入格式不正确', REGISTER_USERNAME_REQUIRED: '请输入用户名', REGISTER_USERNAME_LENGTH: '用户名长度必须为 2-20 个字符', REGISTER_USERNAME_CHARACTERS: '用户名只能包含字母、数字、下划线、连字符和中文', REGISTER_PASSWORD_REQUIRED: '请输入密码', REGISTER_PASSWORD_LENGTH: '密码长度必须为 10-128 个字符', INVALID_REQUEST_BODY: '请求数据不完整，请重试', PAYLOAD_TOO_LARGE: '导入数据过大，请拆分后重试',
         INTERNAL_ERROR: '服务器开小差了，请稍后再试', AUTH_REQUIRED: '请先登录', AUTH_EXPIRED: '登录状态已过期，请重新登录',
@@ -282,6 +285,7 @@ export const resources = {
   },
   en: {
     translation: {
+      soup: turtleSoupTranslations.en,
       difficulty: {
         beginner: 'Beginner',
         easy: 'Easy',
@@ -462,6 +466,7 @@ export const resources = {
         apiTokensTitle: 'External API Tokens', apiTokensCount: '{{count}} active tokens', apiTokenName: 'Token name', apiTokenNamePlaceholder: 'For example: player data sync', apiTokenExpiresIn: 'Valid days (1-365)', createApiToken: 'Generate token', creatingApiToken: 'Generating...', apiTokenCreated: 'API token generated', newApiToken: 'New API token', apiTokenShownOnce: 'The secret is shown only once. Store it securely.', copyApiToken: 'Copy token', apiTokenCopied: 'Copied', apiTokenCopyFailed: 'Copy failed. Select and copy the token manually.', noApiTokens: 'No active API tokens', apiTokenCreatedAt: 'Created: {{date}}', apiTokenExpiresAt: 'Expires: {{date}}', revokeApiToken: 'Revoke', revokeApiTokenTitle: 'Revoke {{name}}?', revokeApiTokenMessage: 'External calls using this token will stop working immediately.', apiTokenRevoked: 'API token revoked',
       },
       errors: {
+        ...turtleSoupErrors.en,
         GEETEST_REQUIRED: 'Please complete the human verification.', GEETEST_FAILED: 'Human verification failed. Try again.', EMAIL_VERIFICATION_CODE_INVALID: 'The verification code is invalid or expired.',
         EMAIL_ALREADY_VERIFIED: 'A verified email cannot be changed.', VALIDATION_FAILED: 'Invalid input', REGISTER_USERNAME_REQUIRED: 'Enter a username.', REGISTER_USERNAME_LENGTH: 'The username must be 2-20 characters long.', REGISTER_USERNAME_CHARACTERS: 'Use only letters, numbers, underscores, hyphens, or Chinese characters.', REGISTER_PASSWORD_REQUIRED: 'Enter a password.', REGISTER_PASSWORD_LENGTH: 'The password must be 10-128 characters long.', INVALID_REQUEST_BODY: 'The request is incomplete. Please try again.', PAYLOAD_TOO_LARGE: 'The import is too large. Split it and try again.',
         INTERNAL_ERROR: 'Something went wrong on the server. Please try again later.', AUTH_REQUIRED: 'Please log in first.', AUTH_EXPIRED: 'Your session has expired. Please log in again.',
@@ -486,6 +491,7 @@ export const resources = {
   },
   ja: {
     translation: {
+      soup: turtleSoupTranslations.ja,
       difficulty: {
         beginner: '入門',
         easy: 'イージー',
@@ -664,6 +670,7 @@ export const resources = {
         apiTokensTitle: '外部 API トークン', apiTokensCount: '有効なトークン {{count}} 件', apiTokenName: 'トークン名', apiTokenNamePlaceholder: '例：選手データ同期', apiTokenExpiresIn: '有効日数（1-365）', createApiToken: 'トークンを生成', creatingApiToken: '生成中...', apiTokenCreated: 'API トークンを生成しました', newApiToken: '新しい API トークン', apiTokenShownOnce: 'シークレットは一度だけ表示されます。安全に保管してください。', copyApiToken: 'トークンをコピー', apiTokenCopied: 'コピーしました', apiTokenCopyFailed: 'コピーできませんでした。トークンを手動で選択してください。', noApiTokens: '有効な API トークンはありません', apiTokenCreatedAt: '作成：{{date}}', apiTokenExpiresAt: '期限：{{date}}', revokeApiToken: '無効化', revokeApiTokenTitle: '{{name}} を無効化しますか？', revokeApiTokenMessage: 'このトークンを使用する外部呼び出しは直ちに無効になります。', apiTokenRevoked: 'API トークンを無効化しました',
       },
       errors: {
+        ...turtleSoupErrors.ja,
         GEETEST_REQUIRED: '本人確認を完了してください。', GEETEST_FAILED: '本人確認に失敗しました。もう一度お試しください。', EMAIL_VERIFICATION_CODE_INVALID: '確認コードが無効または期限切れです。',
         EMAIL_ALREADY_VERIFIED: '確認済みメールは変更できません。', VALIDATION_FAILED: '入力形式が正しくありません', REGISTER_USERNAME_REQUIRED: 'ユーザー名を入力してください。', REGISTER_USERNAME_LENGTH: 'ユーザー名は 2-20 文字で入力してください。', REGISTER_USERNAME_CHARACTERS: 'ユーザー名には英数字、アンダースコア、ハイフン、中国語文字のみ使用できます。', REGISTER_PASSWORD_REQUIRED: 'パスワードを入力してください。', REGISTER_PASSWORD_LENGTH: 'パスワードは 10-128 文字で入力してください。', INVALID_REQUEST_BODY: 'リクエストデータが不足しています。もう一度お試しください。', PAYLOAD_TOO_LARGE: 'インポートデータが大きすぎます。分割して再試行してください。',
         INTERNAL_ERROR: 'サーバーで問題が発生しました。後でもう一度お試しください。', AUTH_REQUIRED: '先にログインしてください。', AUTH_EXPIRED: 'ログインの有効期限が切れました。再度ログインしてください。',

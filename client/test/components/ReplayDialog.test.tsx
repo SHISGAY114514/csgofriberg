@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ReplayDialog, { type MultiReplay } from '../../src/components/ReplayDialog';
 import type { PlayerPerformanceStats } from '../../src/types';
+import i18n from '../../src/i18n';
 
 const guess = {
   playerId: 2,
@@ -62,6 +63,31 @@ const stats: PlayerPerformanceStats = {
 };
 
 describe('ReplayDialog', () => {
+  it.each([
+    ['zh', '海龟汤回放', '是也不是'],
+    ['en', 'Turtle Soup replay', 'Yes and no'],
+    ['ja', 'ウミガメのスープのリプレイ', 'はい、でもいいえ'],
+  ])('renders ordered snapshot events in %s without a classic board', async (language, title, close) => {
+    await i18n.changeLanguage(language);
+    render(<ReplayDialog onClose={() => {}} replay={{
+      type: 'single', id: 101, mode: 'easy', variant: 'turtle-soup', status: 'won',
+      questionCount: 2, guessCount: 1, createdAt: '', finishedAt: '', guesses: [],
+      answer: { ...replay.rounds[0].answer, nickname: 'Snapshot Answer' },
+      events: [
+        { type: 'question', field: 'age', value: 25, level: 'close', requestId: '1', elapsedMs: 100 },
+        { type: 'question', field: 'isActive', value: false, level: 'wrong', requestId: '2', elapsedMs: 200 },
+        { type: 'guess', playerId: 1, nickname: 'Snapshot Name', correct: true, requestId: '3', elapsedMs: 300 },
+      ],
+    }} />);
+    expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+    const events = within(screen.getByRole('list')).getAllByRole('listitem');
+    expect(events).toHaveLength(3);
+    expect(events[0]).toHaveTextContent('25');
+    expect(events[0]).toHaveTextContent(close);
+    expect(events[2]).toHaveTextContent('Snapshot Name');
+    expect(document.querySelector('.guess-board')).toBeNull();
+    expect(document.body.textContent).not.toContain('soup.');
+  });
   it('labels guesses made by additional relay teammates', () => {
     const relayReplay: MultiReplay = {
       ...replay,
