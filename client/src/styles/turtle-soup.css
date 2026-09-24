@@ -45,6 +45,21 @@
 .soup-pending { border-color: var(--warning); margin-bottom: 1rem; }
 .soup-mode-tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
 html .soup-mode-tabs [role='tab'][aria-selected='true'] { background: var(--text); border-color: var(--text); color: var(--bg); }
+/* Fit both panels above the guess dock in a maximized 1080p browser. */
+@media (min-width: 761px) {
+  .soup-page .page-scroll { padding-block: 1rem; }
+  .soup-page .soup-layout { padding-block: 0; }
+  .soup-layout > .card { padding: 1rem; margin-bottom: 0; }
+  .soup-layout h2 { margin-bottom: .6rem; }
+  .soup-question { margin-bottom: .5rem; }
+  .soup-question label { margin-bottom: .2rem; line-height: 1.3; }
+  .soup-question-controls .input,
+  .soup-question-controls .btn { min-height: 2.25rem; height: 2.25rem; padding: .35rem .65rem; line-height: 1.25; }
+  .soup-questions .soup-giveup { min-height: 2.25rem; padding-block: .4rem; margin: .25rem 0 .5rem; }
+  .soup-questions .soup-rules-entry { margin: .25rem auto 0; }
+  .soup-questions .game-rules-trigger { margin-top: 0; }
+  .soup-history-scroll .soup-event { padding-block: .65rem; }
+}
 /* Wide screens show five columns; narrow screens use stacked compact rows. */
 .home-page .menu-grid {
   grid-template-columns: repeat(5, minmax(0, 1fr));
