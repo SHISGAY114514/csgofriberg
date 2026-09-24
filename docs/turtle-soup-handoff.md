@@ -8,7 +8,8 @@
 - 修复后台用户/访客记录列表：海龟汤答案使用保存的昵称快照，明确标示玩法、提问次数及猜名次数。新增回归后后端 **204**、前端 **162** 项通过，构建通过。
 - 使用专用测试身份、独立 SQLite 副本、`3002` 端口及 `csgofriberg-stage3-acceptance:` Redis 前缀，完成真实浏览器登录/登出、访客归并、独立统计、隐藏/恢复排名、个人和后台快照回放。选手改名仅发生在副本中。
 - Chrome 30 组布局及 18 问/最后猜名/网络恢复/并发验证通过；真实 30 分 7 秒只读过期及 12 分 32 秒双标签弱网检查均通过，具体范围以[发布验收记录](turtle-soup-release-validation.md)为准。
-- `.dockerignore` 排除 `.local-*`；PR CI 增加只构建、不发布的隔离生产镜像验收脚本。Windows 本机没有 Docker/PostgreSQL/可用 WSL，脚本静态检查通过不等于生产验收通过。
+- `.dockerignore` 排除 `.local-*`；Windows 本机没有 Docker/PostgreSQL/可用 WSL，因此通过 PR CI 的 Linux runner 完成实际隔离生产验收：PostgreSQL 空库/旧记录/重复迁移、nonroot 只读镜像启动、SPA/缓存、PoW/Cookie、代理头/Origin、结算快照、登录归并及登出失效均通过。
+- 上游 [PR #12](https://github.com/shnlfriberg/csgofriberg/pull/12)，来源 `SHISGAY114514:feat/turtle-soup`，目标 `shnlfriberg:main`。首轮 [CI 36065190676](https://github.com/shnlfriberg/csgofriberg/actions/runs/36065190676) 的 `test` 和 `docker` 均成功；后续提交的动态检查结果见 PR 页面。未合并、未部署、未推送镜像或发布标签。
 - 原有账号、已有 12 条永久记录和 668 名选手逐行摘要核对一致；646 启用、22 禁用。增加的验收身份和访客记录不替换原数据。
 
 第三阶段的逐项结果、证据、未验证项与 PR/CI 状态见[发布验收记录](turtle-soup-release-validation.md)。以下为第二阶段交接时的历史记录，原有“第三阶段待办/未推送”描述仅代表当时状态。

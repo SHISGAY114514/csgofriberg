@@ -4,6 +4,8 @@
 
 第三阶段代码提交：`630e371`（后台快照及两种计数）、`ef0c45a`（隔离生产验收与构建上下文保护）。
 
+上游 [PR #12](https://github.com/shnlfriberg/csgofriberg/pull/12)。首轮 [Linux CI 36065190676](https://github.com/shnlfriberg/csgofriberg/actions/runs/36065190676) 对分支提交 `8ee1958` 的合并测试结果为 `test: success`、`docker: success`，已包含下列生产容器专项；后续文档提交的动态结果见 [PR 检查页](https://github.com/shnlfriberg/csgofriberg/pull/12/checks)。
+
 ## 环境与数据保护
 
 - Windows、Node 26.10.0、pnpm 11.13.1、Redis 7.4.3、SQLite；原 `5173/3000/16379` 服务直接复用，没有停启 Redis、重新导入选手或应用 stash。
@@ -28,10 +30,10 @@
 | 桌面跨浏览器 | 部分通过 | Edge 150.0.4078.48 与 Chrome 154.0.8037.57 独立无界面真实浏览器；两者同为 Chromium，不能据此认定 Firefox/WebKit/Safari 通过 |
 | 真机 Android/输入法/软键盘 | 未验证，用户暂缓 | 用户有真机及模拟器。Windows 识别 USB 调试接口，但现有 ADB 36.0.0 在原服务及独立服务均没有设备；重新插拔并启用文件传输后仍不可用。用户暂不方便改用同一 Wi-Fi，明确要求先记未验证。未安装/更换驱动；自动化触控/视口压缩/合成 composition 测试不等于原生输入法 |
 | iOS Safari、无障碍设备 | 未验证 | 无设备通道 |
-| PostgreSQL 迁移/镜像启动 | 本机阻塞，待 CI | 未发现 Docker、Podman、PostgreSQL，WSL 未安装。新增隔离镜像验收入口，尚未取得 Linux 实际运行证据 |
-| 生产 PoW/Cookie/代理/缓存 | 待 CI | 脚本覆盖实际 PoW 求解、Secure/HttpOnly/SameSite Cookie、代理 IP 绑定、非许可 Origin 拒绝、SPA 和静态资源缓存，不能用本机开发环境成功替代 |
+| PostgreSQL 迁移/镜像启动 | 通过（Linux CI） | Ubuntu runner 实际构建 Linux/amd64 生产镜像，PostgreSQL 17-alpine + Redis 7.4-alpine；空库迁移、含旧 classic 记录的升级、重复迁移后原胜负/猜测数保留，nonroot/只读镜像启动及真实结算通过。CI 36065190676 的 `Verify isolated PostgreSQL migrations and production runtime` 步骤 |
+| 生产 PoW/Cookie/代理头/缓存 | 通过（隔离环境范围） | 实际 PoW 求解、Secure/HttpOnly/SameSite Cookie 属性、代理 IP 绑定、非许可 Origin 拒绝、SPA 深链、资源 immutable/HTML no-cache、缺失资源 404，以及真实登录、归并、登出令牌失效通过。代理部分为请求头和配置兼容，未部署真实 TLS/边缘代理；CI 同上 |
 | 真实边缘代理/HTTPS/GeeTest/SMTP | 未验证 | 隔离脚本不连接验证码或邮件外部服务，不绕过注册认证；需维护者在预发布环境另验 |
-| PR / CI | 待创建 | 已核对当前 GitHub 账号 `SHISGAY114514` 仅有上游读取权限；已有同名 fork，目标上游 `shnlfriberg/csgofriberg:main`；不推 main、不合并、不部署、不发镜像或标签 |
+| PR / CI | 已创建，首轮全部通过 | 用户确认使用账号 `SHISGAY114514`，只向其 fork 的 `feat/turtle-soup` 推送；上游 PR #12 可合并且无冲突，首轮 `test/docker` 皆成功。没有向上游 main 推送、合并、部署、发布镜像或标签 |
 
 ## 修复范围
 
@@ -54,7 +56,7 @@ bash scripts/verify-production.sh LOCAL_IMAGE_TAG
 3. 保留实际 PoW 和身份中间件，求解挑战、接收安全 Cookie，检查代理 IP 绑定及 Origin 拒绝。
 4. 完成海龟汤提问/幂等/409/胜局/统计/改名后快照回放，再检查真实登录、访客归并、登出令牌失效。
 
-脚本本机只完成 Node/Bash 语法检查，不能声称上述生产流程已通过。GeeTest 参数使用隔离占位值；不调用注册/验证码/邮件，因此不证明外部服务或真实 TLS 边缘部署可用。PR 事件仍为 `push: false`，没有新增手动发布触发。
+脚本本机完成 Node/Bash 语法检查后，已在上述 Linux CI 实际运行并全部通过；本地保留日志 `.local-logs/stage3-ci-36065190676.log`。GeeTest 参数使用隔离占位值；不调用注册/验证码/邮件，因此不证明外部服务或真实 TLS 边缘部署可用。安全 Cookie 属性通过 HTTP 请求检查，不等于真机浏览器 HTTPS Cookie 传输验收。PR 事件仍为 `push: false`，没有新增手动发布触发。
 
 PR 本地加载的镜像关闭 attestations，以兼容 runner 的 classic image store；原发布分支的 provenance/SBOM 继续保留。该限制依据 [Docker attestations 文档](https://docs.docker.com/build/metadata/attestations/)。
 
