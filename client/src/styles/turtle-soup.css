@@ -48,7 +48,8 @@ html .soup-mode-tabs [role='tab'][aria-selected='true'] { background: var(--text
 /* Fit both panels above the guess dock in a maximized 1080p browser. */
 @media (min-width: 761px) {
   .soup-page .page-scroll { padding-block: 1rem; }
-  .soup-page .soup-layout { padding-block: 0; }
+  .soup-page .soup-layout { padding-block: 0; flex-grow: .65; }
+  .soup-layout > .soup-questions { align-self: stretch; display: flex; flex-direction: column; justify-content: space-between; }
   .soup-layout > .card { padding: 1rem; margin-bottom: 0; }
   .soup-layout h2 { margin-bottom: .6rem; }
   .soup-question { margin-bottom: .5rem; }
