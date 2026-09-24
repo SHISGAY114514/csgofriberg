@@ -33,9 +33,11 @@ function SoupGamePage({ mode }: { mode: string }) {
   const confirm = useConfirm();
   const { game, options, busy, error, expired, pending, load, submit, exit } = useTurtleSoup(mode);
   const [values, setValues] = useState<Partial<Record<SoupField, string>>>({});
-  const endRef = useRef<HTMLDivElement>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
   useEffect(() => { setValues({}); }, [game?.gameId]);
-  useEffect(() => { endRef.current?.scrollIntoView({ block: 'nearest' }); }, [game?.events.length]);
+  useEffect(() => {
+    if (historyRef.current) historyRef.current.scrollTop = 0;
+  }, [game?.gameId, game?.events.at(-1)?.requestId]);
 
   const leaveOrRestart = async (restart: boolean) => {
     if (busy || pending) return;
@@ -75,8 +77,8 @@ function SoupGamePage({ mode }: { mode: string }) {
     {pending && !busy && <div className="card soup-pending" role="alert"><p>{t('soup.pending')}</p><button className="btn" disabled={busy} onClick={() => void load()}>{t('soup.retry')}</button></div>}
     {!game && busy && <p role="status">{t('common.loading')}</p>}
     {game && <div className="soup-layout">
-      <section className="card soup-history"><div className="soup-section-heading"><h2>{t('soup.log')}</h2><span className="muted">{game.questionCount} / 18</span></div>
-        <SoupLog events={game.events} />
+      <section className="card soup-history"><div className="soup-section-heading"><h2 id="soup-history-heading">{t('soup.log')}</h2><span className="muted">{game.questionCount} / 18</span></div>
+        <div className="soup-history-scroll" ref={historyRef} role="region" aria-labelledby="soup-history-heading" tabIndex={0}>
         {game.answer && <section className={`soup-result soup-${game.status === 'won' ? 'correct' : 'wrong'}`} aria-live="polite">
           <h2>{t(game.status === 'won' ? 'soup.win' : 'soup.loss')}</h2><h3>{game.answer.nickname}</h3>
           <p>{t('soup.result', { questions: game.questionCount, guesses: game.guessCount })}</p>
@@ -84,7 +86,8 @@ function SoupGamePage({ mode }: { mode: string }) {
           {game.recorded === false && <p className="muted">{t('soup.unrecorded')}</p>}
           <div className="btns"><button className="btn btn-green" disabled={busy} onClick={() => void leaveOrRestart(true)}>{t('game.restart')}</button><Link className="btn" to="/stats?variant=turtle-soup">{t('soup.stats')}</Link><Link className="btn" to="/leaderboard?mode=turtle-soup">{t('soup.leaderboard')}</Link></div>
         </section>}
-        <div ref={endRef} />
+          <SoupLog events={game.events} newestFirst />
+        </div>
       </section>
       <aside className="card soup-questions"><h2>{t('soup.questions')}</h2>
         {SOUP_FIELDS.map((field) => <form className="soup-question" key={field} onSubmit={(event) => {

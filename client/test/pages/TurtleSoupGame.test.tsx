@@ -154,6 +154,38 @@ describe('Turtle Soup interactions', () => {
     expect(post).toHaveBeenLastCalledWith('/game/soup1/guess', { playerId: 1, version: 1, requestId: expect.any(String) });
   });
 
+  it('prepends new feedback with its original number and scrolls only the history window', async () => {
+    const savedEvents: SoupGame['events'] = [
+      { type: 'question', field: 'age', value: 25, level: 'close', requestId: 'q1', elapsedMs: 1 },
+      { type: 'guess', playerId: 1, nickname: 'Earlier Guess', correct: false, requestId: 'g1', elapsedMs: 2 },
+    ];
+    state = { ...base, version: 2, questionCount: 1, remainingQuestions: 17, guessCount: 1, events: savedEvents };
+    renderGame(); await ready();
+    const history = screen.getByRole('region', { name: '推理记录' });
+    let items = within(history).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('Earlier Guess');
+    expect(items[0].querySelector('.soup-event-number')).toHaveTextContent('02');
+    expect(items[1]).toHaveTextContent('25');
+    history.scrollTop = 200;
+    const scrollPage = vi.spyOn(Element.prototype, 'scrollIntoView');
+    scrollPage.mockClear();
+    fireEvent.change(screen.getByLabelText('年龄'), { target: { value: '26' } });
+    expect(history.scrollTop).toBe(200);
+    state = { ...state, version: 3, questionCount: 2, remainingQuestions: 16, guessUnlocked: true,
+      events: [...savedEvents, { type: 'question', field: 'age', value: 26, level: 'correct', requestId: 'q2', elapsedMs: 3 }] };
+    fireEvent.submit(screen.getByLabelText('年龄').closest('form')!);
+    await waitFor(() => expect(within(history).getAllByRole('listitem')).toHaveLength(3));
+    items = within(history).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('26');
+    expect(items[0]).toHaveTextContent('是');
+    expect(items[0].querySelector('.soup-event-number')).toHaveTextContent('03');
+    expect(items[2].querySelector('.soup-event-number')).toHaveTextContent('01');
+    expect(history.scrollTop).toBe(0);
+    expect(scrollPage).not.toHaveBeenCalled();
+    expect(savedEvents.map((event) => event.requestId)).toEqual(['q1', 'g1']);
+    scrollPage.mockRestore();
+  });
+
   it('keeps the final guess after question 18, then shows the losing receipt', async () => {
     state = { ...base, version: 18, questionCount: 18, remainingQuestions: 0, guessUnlocked: true };
     renderGame();

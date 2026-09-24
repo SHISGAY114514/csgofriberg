@@ -5,7 +5,11 @@
 .soup-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(19rem, 1fr); gap: 1.25rem; align-items: start; padding: .5rem 0 1rem; }
 .soup-layout h2 { font-size: 1rem; margin: 0 0 1rem; }
 .soup-section-heading { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border); margin-bottom: .5rem; }
-.soup-history { min-height: 24rem; min-width: 0; }
+.soup-history { align-self: stretch; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+/* The question panel sizes the grid row; log content scrolls without growing it. */
+.soup-history-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-wrap: anywhere; overscroll-behavior-y: contain; scrollbar-gutter: stable; contain: size; }
+.soup-history-scroll:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.soup-history-scroll .soup-result { margin-top: 0; margin-bottom: 1.5rem; }
 .soup-log { margin: 0; padding: 0; list-style: none; }
 .soup-event { display: grid; grid-template-columns: 1.7rem minmax(0, 1fr) auto; gap: .7rem; padding: 1rem 0; border-bottom: 1px solid var(--border); align-items: start; }
 .soup-event p { margin: 0; overflow-wrap: anywhere; }
@@ -71,8 +75,7 @@ html .soup-mode-tabs [role='tab'][aria-selected='true'] { background: var(--text
   .soup-page .header-bar .title { white-space: normal; overflow: visible; max-width: none; line-height: 1.3; font-size: .9rem; }
   .soup-page .header-bar .title > svg { flex-shrink: 0; }
   .soup-layout { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
-  .soup-history { min-height: 8rem; max-height: 42dvh; overflow-y: auto; }
-  .soup-history:has(.soup-result) { max-height: none; }
+  .soup-history-scroll { flex: none; height: min(24rem, 36dvh); }
   .soup-empty { padding: 1.5rem .5rem; }
   .soup-page .status-bar > .muted { display: none; }
   .soup-event { gap: .4rem; grid-template-columns: 1.4rem minmax(0, 1fr) auto; }
