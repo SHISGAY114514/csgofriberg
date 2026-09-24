@@ -60,13 +60,17 @@ pwsh -NoProfile -File scripts/local.ps1 -Action build
 - 前端：`http://localhost:5173`（当前为原游戏 UI）。
 - 后端：`http://localhost:3000`；健康检查 `/api/health` 应为 `ok: true, redis: up`。
 - Redis：仅监听 `127.0.0.1:16379`；开发前缀 `csgofriberg-local:`。
-- 开发数据库：`.local-data/development.sqlite3`，已导入完整 **646 人**，与生产隔离。
+- 开发数据库：`.local-data/development.sqlite3`。2026-09-25 按用户要求更新为 **668 条选手记录：646 条启用、22 条停用**，与生产隔离。原 646 条记录已更新，新增 22 条，保留来源文件的停用标记。
 - 日志：`.local-logs/`。本地密钥由脚本生成，留在 `.local-data/`，不要打印/提交。
 - 测试每次使用新的 SQLite 文件和 Redis 前缀，避免污染开发数据。测试环境 `REDIS_REQUIRED=false` 是为了让原有内存回退单元测试通过；集成测试仍使用真实 Redis，开发服务则强制 Redis 可用。
 - Windows 的 `better-sqlite3` 安装可能打印可选编译失败；本机包内的预编译绑定已实测可用，setup 最后会执行 SQLite 查询检查，不需要为此改依赖。
 - Windows Redis 使用独立开发构建；生产仍沿用仓库原有 Linux Redis/PostgreSQL 部署。
 
-完整选手来源为可访问的私有数据仓库，下载文件留在 `.local-data/players.json`。它不是应用内置的新数据源，不要把它、工具目录或本地数据库提交进 PR。需要重导入时执行：
+**当前数据来源**是用户提供的更新文件 `E:\Users\Administrator\Downloads\players.json`，已复制到 `.local-data/players.json` 并导入。此前使用的 `shnlfriberg/csgo-major-db` 快照已被替换。所有资料、战队历史、难度关系及启停状态已逐项核对；导出的 `playerId` 不覆盖本地内部 ID，以保留既有账号和对局关联。
+
+导入时间、来源路径和 SHA-256 记录在 `.local-data/players-provenance.json`；导入前数据库及 JSON 备份位于 `.local-data/backups/`。本地测试管理员凭据保存在 `.local-data/test-admin.json`，本次数据更新保留该账号。
+
+此文件是本地测试数据快照，不会自动同步源文件。不要把数据文件、凭据、工具目录或本地数据库提交进 PR。需要重导入时执行：
 
 ```powershell
 pwsh -NoProfile -File scripts/local.ps1 -Action import -PlayersFile .local-data/players.json
