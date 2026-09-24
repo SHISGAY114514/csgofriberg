@@ -143,3 +143,5 @@ type SoupEvent = {
   - 仅所属访客/账号可读。管理员的 `/admin/users/:userId/games/:gameId/replay` 也返回相同海龟汤结构。
 
 访客 `/auth/claim` 会归并海龟汤永久记录，刷新两个玩法的相关缓存。进行中的局仍按原身份和玩法隔离，不迁移 Redis 活跃对局。
+
+后台用户 `/admin/users/:id/games?type=single` 和访客 `/admin/guests/:id/games?type=single` 列表保留各玩法记录，返回 `variant`、`questionCount` 和 `guessCount`。海龟汤答案昵称来自保存的 `answer_snapshot`；列表须标示玩法，并分别标注提问次数和猜名次数，不能用当前选手资料替换历史答案。
