@@ -52,7 +52,7 @@ interface GuestGamePage { type: 'single' | 'multi'; page: number; pageSize: numb
 
 interface UserStatsView { user: AdminUser; stats: PlayerPerformanceStats }
 interface SingleUserGame {
-  type: 'single'; id: number; mode: string; status: string; guessCount: number; answer: string; finishedAt: string;
+  type: 'single'; id: number; mode: string; variant?: 'classic' | 'turtle-soup'; status: string; guessCount: number; questionCount?: number; answer: string; finishedAt: string;
 }
 interface MultiUserGame {
   type: 'multi'; id: number; mode: string; boType: number; gameMode?: 'classic' | 'relay';
@@ -150,8 +150,8 @@ function GuestGamesTab({ guest }: { guest: AdminGuest }) {
           ? t('multi.relayProgress', { solved: game.relaySolvedRounds ?? 0, total: game.totalRounds ?? 0 })
           : result === 'won' ? t('common.win') : result === 'draw' ? t('common.draw') : t('common.loss');
         return <article className="admin-user-game-item" key={`${game.type}:${game.id}`}>
-          <div className="admin-user-game-heading"><strong>{game.type === 'single' ? difficultyLabel(t, game.mode) : game.gameMode === 'relay' ? `${difficultyLabel(t, game.mode)} · ${t('multi.relayMode')}` : `${difficultyLabel(t, game.mode)} · BO${game.boType}`}</strong><Badge text={label} color={result === 'won' || result === 'cooperative' ? 'green' : 'gray'} /></div>
-          <div className="admin-user-game-details">{game.type === 'single' ? <><span>{t('stats.answer')} <strong>{game.answer}</strong></span><span>{t('stats.guesses')} <strong>{game.guessCount}</strong></span></> : <><span>{t('admin.opponent')} <strong>{game.opponent?.displayId ?? t('stats.unknownOpponent')}</strong></span>{game.gameMode !== 'relay' && <span>{t('stats.score')} <strong>{game.me.score}:{game.opponent?.score ?? 0}</strong></span>}</>}</div>
+          <div className="admin-user-game-heading"><strong>{game.type === 'single' ? `${difficultyLabel(t, game.mode)}${game.variant === 'turtle-soup' ? ` · ${t('soup.shortTitle')}` : ''}` : game.gameMode === 'relay' ? `${difficultyLabel(t, game.mode)} · ${t('multi.relayMode')}` : `${difficultyLabel(t, game.mode)} · BO${game.boType}`}</strong><Badge text={label} color={result === 'won' || result === 'cooperative' ? 'green' : 'gray'} /></div>
+          <div className="admin-user-game-details">{game.type === 'single' ? <><span>{t('stats.answer')} <strong>{game.answer}</strong></span>{game.variant === 'turtle-soup' && <span>{t('soup.questionCount')} <strong>{game.questionCount ?? 0}</strong></span>}<span>{t(game.variant === 'turtle-soup' ? 'soup.guessCount' : 'stats.guesses')} <strong>{game.guessCount}</strong></span></> : <><span>{t('admin.opponent')} <strong>{game.opponent?.displayId ?? t('stats.unknownOpponent')}</strong></span>{game.gameMode !== 'relay' && <span>{t('stats.score')} <strong>{game.me.score}:{game.opponent?.score ?? 0}</strong></span>}</>}</div>
           <div className="admin-user-game-footer"><time dateTime={game.finishedAt}>{formatDate(game.finishedAt)}</time></div>
         </article>;
       }) : <p className="muted admin-user-game-empty">{loading ? t('common.loading') : type === 'single' ? t('admin.noSingleGames') : t('admin.noMultiGames')}</p>}
@@ -289,13 +289,13 @@ function GamesTab({ user, onReplayOpenChange }: { user: AdminUser; onReplayOpenC
           return (
             <article className="admin-user-game-item" key={`${game.type}:${game.id}`}>
               <div className="admin-user-game-heading">
-                <strong>{game.type === 'single' ? difficultyLabel(t, game.mode) : game.gameMode === 'relay' ? `${difficultyLabel(t, game.mode)} · ${t('multi.relayMode')}` : `${difficultyLabel(t, game.mode)} · BO${game.boType}`}</strong>
+                <strong>{game.type === 'single' ? `${difficultyLabel(t, game.mode)}${game.variant === 'turtle-soup' ? ` · ${t('soup.shortTitle')}` : ''}` : game.gameMode === 'relay' ? `${difficultyLabel(t, game.mode)} · ${t('multi.relayMode')}` : `${difficultyLabel(t, game.mode)} · BO${game.boType}`}</strong>
                 <Badge text={label} color={result === 'won' || result === 'cooperative' ? 'green' : 'gray'} />
               </div>
               <div className="admin-user-game-details">
                 {game.type === 'single' ? <>
                   <span>{t('stats.answer')} <strong>{game.answer}</strong></span>
-                  <span>{t('stats.guesses')} <strong>{game.guessCount}</strong></span>
+                  {game.variant === 'turtle-soup' && <span>{t('soup.questionCount')} <strong>{game.questionCount ?? 0}</strong></span>}<span>{t(game.variant === 'turtle-soup' ? 'soup.guessCount' : 'stats.guesses')} <strong>{game.guessCount}</strong></span>
                 </> : <>
                   <span>{t('admin.opponent')} <strong>{game.opponent?.displayId ?? t('stats.unknownOpponent')}</strong></span>
                   {game.gameMode !== 'relay' && <span>{t('stats.score')} <strong>{game.me.score}:{game.opponent?.score ?? 0}</strong></span>}

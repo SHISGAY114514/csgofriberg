@@ -12,6 +12,7 @@ import {
   LogOut,
   Wrench,
   CalendarDays,
+  Soup,
 } from 'lucide-react';
 import MenuCard from '../components/MenuCard';
 import GameRules from '../components/GameRules';
@@ -221,6 +222,7 @@ export default function Home() {
             description={t('home.searchDescription')}
             color="#65a8ff"
           />
+          <MenuCard to="/turtle-soup" icon={<Soup size={22} />} label={t('soup.title')} description={t('soup.description')} color="#ba95ed" />
         </div>
         <div className="bottom-bar">
           <Link to="/stats" className="btn">

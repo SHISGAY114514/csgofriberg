@@ -46,7 +46,7 @@ function isoDate(value: unknown): string {
 }
 
 async function loadPlayerPerformance(identity: StoredIdentity) {
-  const singleQuery = db('games').whereNot('status', 'playing');
+  const singleQuery = db('games').where('variant', 'classic').whereNot('status', 'playing');
   if (identity.userId !== null) {
     singleQuery.where({ user_id: identity.userId });
   } else if (identity.key.startsWith('g:')) {

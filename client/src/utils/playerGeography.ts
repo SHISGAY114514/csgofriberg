@@ -78,6 +78,32 @@ canonicalRegions.set('北美', '北美洲');
 canonicalRegions.set('南美', '南美洲');
 canonicalRegions.set('亚洲', '亚太');
 
+// Keep this small index local so country suggestions do not need another request or dependency.
+const PINYIN: Record<string, string> = {
+  阿根廷: 'a gen ting', 阿塞拜疆: 'a sai bai jiang', 爱沙尼亚: 'ai sha ni ya', 澳大利亚: 'ao da li ya',
+  巴西: 'ba xi', 白俄罗斯: 'bai e luo si', 保加利亚: 'bao jia li ya', 北马其顿: 'bei ma qi dun',
+  比利时: 'bi li shi', 波黑: 'bo hei', 波兰: 'bo lan', 丹麦: 'dan mai', 德国: 'de guo', 俄罗斯: 'e luo si',
+  法国: 'fa guo', 芬兰: 'fen lan', 哈萨克斯坦: 'ha sa ke si tan', 荷兰: 'he lan', 黑山: 'hei shan',
+  加拿大: 'jia na da', 捷克: 'jie ke', 拉脱维亚: 'la tuo wei ya', 立陶宛: 'li tao wan', 罗马尼亚: 'luo ma ni ya',
+  马来西亚: 'ma lai xi ya', 美国: 'mei guo', 蒙古: 'meng gu', 南非: 'nan fei', 挪威: 'nuo wei', 葡萄牙: 'pu tao ya',
+  瑞典: 'rui dian', 瑞士: 'rui shi', 塞尔维亚: 'sai er wei ya', 塞尔维亚科索沃: 'sai er wei ya ke suo wo',
+  斯洛伐克: 'si luo fa ke', 土耳其: 'tu er qi', 危地马拉: 'wei di ma la', 乌克兰: 'wu ke lan', 乌拉圭: 'wu la gui',
+  乌兹别克斯坦: 'wu zi bie ke si tan', 西班牙: 'xi ban ya', 新西兰: 'xin xi lan', 匈牙利: 'xiong ya li',
+  以色列: 'yi se lie', 印度: 'yin du', 印度尼西亚: 'yin du ni xi ya', 英国: 'ying guo', 约旦: 'yue dan',
+  智利: 'zhi li', 中国: 'zhong guo',
+  北美洲: 'bei mei zhou', 北美: 'bei mei', 大洋洲: 'da yang zhou', 独联体: 'du lian ti',
+  非洲与以色列: 'fei zhou yu yi se lie', 南美洲: 'nan mei zhou', 南美: 'nan mei', 欧洲: 'ou zhou', 亚太: 'ya tai', 亚洲: 'ya zhou',
+};
+
+/** Returns Chinese text, pinyin and pinyin initials for local fuzzy matching. */
+export function geographySearchText(value: string): string {
+  const trimmed = value.trim();
+  const pinyin = PINYIN[trimmed];
+  if (!pinyin) return trimmed.toLocaleLowerCase();
+  const words = pinyin.split(/\s+/);
+  return `${trimmed} ${pinyin} ${words.join('')} ${words.map((word) => word[0]).join('')}`.toLocaleLowerCase();
+}
+
 export function countryLabel(t: TFunction, value: string): string {
   const key = countryKeys.get(value.trim());
   return key ? String(t(`geography.countries.${key}`)) : value;

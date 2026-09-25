@@ -8,7 +8,7 @@ function textAttr(guess: string, target: string): AttributeFeedback {
   return { value: guess, level: guess === target ? 'correct' : 'wrong' };
 }
 
-function teamAttr(guess: Player, target: Player): AttributeFeedback {
+function teamAttr(guess: Pick<Player, 'team'>, target: Player): AttributeFeedback {
   if (guess.team === target.team) {
     return { value: guess.team, level: 'correct' };
   }
@@ -19,7 +19,7 @@ function teamAttr(guess: Player, target: Player): AttributeFeedback {
 }
 
 /** 国家或地区:相同 correct;不同但同赛区 close */
-function nationalityAttr(guess: Player, target: Player): AttributeFeedback {
+function nationalityAttr(guess: Pick<Player, 'nationality' | 'region'>, target: Player): AttributeFeedback {
   if (guess.nationality === target.nationality)
     return { value: guess.nationality, level: 'correct' };
   if (guess.region && guess.region === target.region)
@@ -88,3 +88,21 @@ export function refreshGuessFeedback(
 }
 
 export const MAX_GUESSES = 8;
+
+/** The soup variant shares classic thresholds, but never exposes directional hints. */
+export function compareQuestion(
+  target: Player,
+  field: 'team' | 'nationality' | 'role' | 'isActive' | 'age' | 'majorChampionships' | 'majorAppearances',
+  value: string | number | boolean,
+  region = ''
+): AttributeFeedback['level'] {
+  switch (field) {
+    case 'team': return teamAttr({ team: String(value) }, target).level;
+    case 'nationality': return nationalityAttr({ nationality: String(value), region }, target).level;
+    case 'role': return textAttr(String(value), target.role).level;
+    case 'isActive': return Boolean(target.is_active) === value ? 'correct' : 'wrong';
+    case 'age': return numberAttr(Number(value), target.age, AGE_CLOSE_RANGE).level;
+    case 'majorChampionships': return numberAttr(Number(value), target.major_championships, MAJOR_CHAMPIONSHIPS_CLOSE_RANGE).level;
+    case 'majorAppearances': return numberAttr(Number(value), target.major_appearances, MAJOR_APPEARANCES_CLOSE_RANGE).level;
+  }
+}

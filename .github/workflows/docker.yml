@@ -74,6 +74,7 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -83,5 +84,12 @@ jobs:
             RESOURCE_VERSION=${{ steps.resource_version.outputs.value }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          provenance: mode=max
-          sbom: true
+          # The PR image is loaded into the runner's possibly classic image
+          # store; release pushes retain provenance and SBOM attestations.
+          provenance: ${{ github.event_name != 'pull_request' && 'mode=max' || 'false' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
+      - name: Verify isolated PostgreSQL migrations and production runtime
+        if: github.event_name == 'pull_request'
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: bash scripts/verify-production.sh "${IMAGE_TAGS%%$'\n'*}"

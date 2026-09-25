@@ -42,7 +42,10 @@ describe('game mode discovery API', () => {
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data).toMatchObject({ version: 1 });
-    expect(data.single).toEqual([expect.objectContaining({ key: 'classic', engine: 'player-guess' })]);
+    expect(data.single).toEqual([
+      expect.objectContaining({ key: 'classic', engine: 'player-guess' }),
+      expect.objectContaining({ key: 'turtle-soup', engine: 'attribute-question' }),
+    ]);
     expect(data.multiplayerRoom.map((mode: { key: string }) => mode.key))
       .toEqual(['classic', 'relay', 'relay2v2']);
   });

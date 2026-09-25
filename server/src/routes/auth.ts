@@ -361,6 +361,7 @@ router.post(
     clearGuestCookie(res);
     await invalidateCached(
       ...DIFFICULTY_LEVELS.map((difficulty) => leaderboardCacheKey('single', difficulty.key)),
+      ...DIFFICULTY_LEVELS.map((difficulty) => leaderboardCacheKey('turtle-soup', difficulty.key)),
       ...allPersonalStatsCacheKeys(`g:${guestKey}`),
       ...allPersonalStatsCacheKeys(`u:${req.user!.id}`),
       `room-player-performance:g:${guestKey}`,

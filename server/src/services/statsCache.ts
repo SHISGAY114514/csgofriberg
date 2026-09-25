@@ -1,4 +1,7 @@
 import { DIFFICULTY_LEVELS } from '../difficulties';
+import type { SingleGameVariant } from './gameModes';
+
+const variants: SingleGameVariant[] = ['classic', 'turtle-soup'];
 
 const difficultyKeys = DIFFICULTY_LEVELS.map((difficulty) => difficulty.key);
 
@@ -19,30 +22,30 @@ function allSelections(): string[][] {
   return selections;
 }
 
-export function globalStatsCacheKey(difficulties: readonly string[]): string {
-  return `stats:global:v2:${selectionKey(difficulties)}`;
+export function globalStatsCacheKey(difficulties: readonly string[], variant: SingleGameVariant = 'classic'): string {
+  return `stats:global:v3:${variant}:${selectionKey(difficulties)}`;
 }
 
-export function personalStatsCacheKey(identityKey: string, difficulties: readonly string[]): string {
-  return `stats:personal:v2:${identityKey}:${selectionKey(difficulties)}`;
+export function personalStatsCacheKey(identityKey: string, difficulties: readonly string[], variant: SingleGameVariant = 'classic'): string {
+  return `stats:personal:v3:${identityKey}:${variant}:${selectionKey(difficulties)}`;
 }
 
 export function allGlobalStatsCacheKeys(): string[] {
-  return allSelections().map(globalStatsCacheKey);
+  return variants.flatMap((variant) => allSelections().map((selection) => globalStatsCacheKey(selection, variant)));
 }
 
 export function allPersonalStatsCacheKeys(identityKey: string): string[] {
-  return allSelections().map((difficulties) => personalStatsCacheKey(identityKey, difficulties));
+  return variants.flatMap((variant) => allSelections().map((difficulties) => personalStatsCacheKey(identityKey, difficulties, variant)));
 }
 
-export function globalStatsCacheKeysForDifficulty(difficulty: string): string[] {
+export function globalStatsCacheKeysForDifficulty(difficulty: string, variant: SingleGameVariant = 'classic'): string[] {
   return allSelections()
     .filter((selection) => selection.includes(difficulty))
-    .map(globalStatsCacheKey);
+    .map((selection) => globalStatsCacheKey(selection, variant));
 }
 
-export function personalStatsCacheKeysForDifficulty(identityKey: string, difficulty: string): string[] {
+export function personalStatsCacheKeysForDifficulty(identityKey: string, difficulty: string, variant: SingleGameVariant = 'classic'): string[] {
   return allSelections()
     .filter((selection) => selection.includes(difficulty))
-    .map((difficulties) => personalStatsCacheKey(identityKey, difficulties));
+    .map((difficulties) => personalStatsCacheKey(identityKey, difficulties, variant));
 }

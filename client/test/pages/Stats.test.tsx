@@ -96,4 +96,33 @@ describe('Stats difficulty filter', () => {
       params: { difficulties: 'beginner,easy,normal' },
     });
   });
+
+  it('isolates soup summaries and replay lists, then returns to classic', async () => {
+    renderAtRoute(<Stats />, { route: '/stats?variant=turtle-soup', path: '/stats' });
+    await waitFor(() => expect(apiGet).toHaveBeenCalledWith('/stats/me', {
+      params: { difficulties: 'beginner,easy,normal', variant: 'turtle-soup' },
+    }));
+    expect(apiGet).toHaveBeenCalledWith('/stats/replays', {
+      params: { type: 'single', variant: 'turtle-soup', page: 1, pageSize: 15 },
+    });
+    expect(await screen.findAllByText('平均获胜提问数')).toHaveLength(2);
+    expect(screen.queryByText('多人胜场平均猜测次数')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: '多人对战' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: '普通模式' }));
+    expect(await screen.findAllByText('多人胜场平均猜测次数')).toHaveLength(2);
+    expect(apiGet).toHaveBeenCalledWith('/stats/replays', { params: { type: 'single', page: 1, pageSize: 15 } });
+  });
+
+  it('offers a retry when the replay list fails', async () => {
+    const normal = apiGet.getMockImplementation()!;
+    let failed = false;
+    apiGet.mockImplementation((url, config) => {
+      if (url === '/stats/replays' && !failed) { failed = true; return Promise.reject(new Error('offline')); }
+      return normal(url, config);
+    });
+    renderAtRoute(<Stats />);
+    await userEvent.click(await screen.findByRole('button', { name: '重试' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(apiGet.mock.calls.filter(([url]) => url === '/stats/replays')).toHaveLength(2);
+  });
 });

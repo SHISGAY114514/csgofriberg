@@ -1,3 +1,5 @@
+import SoupLog from './SoupLog';
+import type { SoupEvent } from '../turtleSoup';
 import { useEffect, useId, useRef, useState } from 'react';
 import { BarChart3, ChevronLeft, ChevronRight, Clock3, Swords, User, X } from 'lucide-react';
 import Badge from './Badge';
@@ -11,6 +13,9 @@ import PlayerStatsDialog from './PlayerStatsDialog';
 
 export interface SingleReplay {
   type: 'single';
+  variant?: 'classic' | 'turtle-soup';
+  questionCount?: number;
+  events?: SoupEvent[];
   id: number;
   mode: string;
   status: string;
@@ -158,10 +163,11 @@ export default function ReplayDialog({
           >
           <div className="replay-heading">
             <div>
-              <h2 id={titleId}>{replay.type === 'single' ? t('replay.singleTitle') : t('replay.multiTitle')}</h2>
+              <h2 id={titleId}>{replay.type === 'single' ? t(replay.variant === 'turtle-soup' ? 'soup.replayTitle' : 'replay.singleTitle') : t('replay.multiTitle')}</h2>
               <p>
                 {replay.type === 'single'
-                  ? t('replay.singleSummary', {
+                  ? t(replay.variant === 'turtle-soup' ? 'soup.replaySummary' : 'replay.singleSummary', {
+                    questions: replay.questionCount, guesses: replay.guessCount,
                     mode: difficultyLabel(t, replay.mode),
                     result: replay.status === 'won' ? t('common.win') : t('common.loss'),
                     count: replay.guessCount,
@@ -193,12 +199,15 @@ export default function ReplayDialog({
             {replay.type === 'single' ? (
               <>
                 <AnswerSection answer={replay.answer} />
-                <section className="replay-guesses" aria-label={t('replay.guesses')}>
+                {replay.variant === 'turtle-soup' ? <>
+                  <p>{t('soup.age')}: {replay.answer.age} · {t(replay.answer.isActive ? 'soup.active' : 'soup.retired')}</p>
+                  <section className="replay-guesses"><h3>{t('soup.log')}</h3><SoupLog events={replay.events ?? []} /></section>
+                </> : <section className="replay-guesses" aria-label={t('replay.guesses')}>
                   <h3>{t('replay.guesses')}</h3>
                   {replay.guesses.length
                     ? <GuessBoard guesses={replay.guesses} />
                     : <p className="muted">{t('replay.noGuesses')}</p>}
-                </section>
+                </section>}
               </>
             ) : (
               <div className="replay-rounds">

@@ -5,6 +5,7 @@ import {
   REGION_OPTIONS,
   canonicalRegionValue,
   countryLabel,
+  geographySearchText,
   regionLabel,
 } from '../../src/utils/playerGeography';
 
@@ -38,5 +39,12 @@ describe('player geography labels', () => {
     expect(countryLabel(i18n.t, '乌克兰')).toBe('ウクライナ');
     expect(regionLabel(i18n.t, '亚太')).toBe('アジア太平洋');
     expect(countryLabel(i18n.t, '未知国家')).toBe('未知国家');
+  });
+
+  it('indexes country and region pinyin for local fuzzy search', () => {
+    expect(geographySearchText('中国')).toContain('zhong guo zhongguo zg');
+    expect(geographySearchText('欧洲')).toContain('ou zhou ouzhou oz');
+    expect(COUNTRY_OPTIONS.every((option) => /[a-z]/.test(geographySearchText(option.value)))).toBe(true);
+    expect(geographySearchText('未知国家')).toBe('未知国家');
   });
 });

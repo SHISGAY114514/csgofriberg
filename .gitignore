@@ -15,3 +15,8 @@ compose.override.yaml
 .claude/
 rule.txt
 AGENTS.md
+.local-tools/
+.local-data/
+.local-logs/
+.local-scripts/
+client/tsconfig.tsbuildinfo
