@@ -173,6 +173,7 @@ async function readBoundedResponse(response: Response): Promise<string> {
 
 async function buildSnapshot(subject: AnalysisSubject, locale: AnalysisLocale, trigger: AnalysisTrigger) {
   const singleQuery = db('games')
+    .where('variant', 'classic')
     .whereNotNull('finished_at')
     .orderBy('finished_at', 'desc')
     .orderBy('id', 'desc')

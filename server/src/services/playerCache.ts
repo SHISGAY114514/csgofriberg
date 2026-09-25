@@ -97,6 +97,10 @@ export function getPlayer(id: number): Player | undefined {
   return playersById.get(id);
 }
 
+export function getEnabledPlayers(): readonly Player[] {
+  return allPlayers;
+}
+
 export function getEnabledPlayer(id: number): Player | undefined {
   const player = playersById.get(id);
   return player && Boolean(player.is_enabled) ? player : undefined;

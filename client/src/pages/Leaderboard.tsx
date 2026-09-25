@@ -1,9 +1,9 @@
+import { useSearchParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { Trophy } from 'lucide-react';
 import Page from '../components/Page';
 import DataTable, { Column } from '../components/DataTable';
 import { api, errMsg } from '../api/client';
-import { toast } from '../components/Toast';
 import { useAuth } from '../store/auth';
 import { useTranslation } from 'react-i18next';
 import { AVAILABLE_DIFFICULTIES } from '../config/difficulties';
@@ -18,7 +18,7 @@ interface BoardRow {
   avgGuesses: number | null;
 }
 
-type LeaderboardMode = 'single' | 'multi';
+type LeaderboardMode = 'single' | 'multi' | 'turtle-soup';
 
 interface LeaderboardResponse {
   mode: LeaderboardMode;
@@ -30,11 +30,14 @@ interface LeaderboardResponse {
 export default function Leaderboard() {
   const { t } = useTranslation();
   const difficulties = AVAILABLE_DIFFICULTIES;
-  const [mode, setMode] = useState<LeaderboardMode>('single');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mode: LeaderboardMode = searchParams.get('mode') === 'turtle-soup' ? 'turtle-soup' : searchParams.get('mode') === 'multi' ? 'multi' : 'single';
   const [difficulty, setDifficulty] = useState(AVAILABLE_DIFFICULTIES[0]?.key ?? 'beginner');
   const [rows, setRows] = useState<BoardRow[]>([]);
   const [currentUser, setCurrentUser] = useState<LeaderboardResponse['currentUser']>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
   const requestId = useRef(0);
   const currentUserId = useAuth((state) => state.user?.id ?? null);
 
@@ -47,6 +50,9 @@ export default function Leaderboard() {
   useEffect(() => {
     const currentRequest = ++requestId.current;
     setLoading(true);
+    setError(null);
+    setRows([]);
+    setCurrentUser(null);
     api
       .get<LeaderboardResponse>('/leaderboard', { params: { mode, difficulty } })
       .then((res) => {
@@ -55,12 +61,12 @@ export default function Leaderboard() {
         setCurrentUser(res.data.currentUser);
       })
       .catch((err) => {
-        if (currentRequest === requestId.current) toast.error(errMsg(err));
+        if (currentRequest === requestId.current) setError(errMsg(err));
       })
       .finally(() => {
         if (currentRequest === requestId.current) setLoading(false);
       });
-  }, [mode, difficulty]);
+  }, [mode, difficulty, currentUserId, retry]);
 
   const resetBoard = () => {
     setLoading(true);
@@ -69,11 +75,14 @@ export default function Leaderboard() {
   };
 
   const chooseMode = (next: LeaderboardMode) => {
-    setMode(next);
+    if (next === mode) return;
+    requestId.current++;
+    setSearchParams({ mode: next });
     resetBoard();
   };
 
   const chooseDifficulty = (next: string) => {
+    if (next === difficulty) return;
     setDifficulty(next);
     resetBoard();
   };
@@ -95,13 +104,13 @@ export default function Leaderboard() {
     { key: 'winRate', title: t('leaderboard.winRate'), render: (r) => `${(r.winRate * 100).toFixed(1)}%` },
     ...(mode === 'multi' ? [] : [{
       key: 'avgGuesses',
-      title: t('leaderboard.avgGuesses'),
+      title: t(mode === 'turtle-soup' ? 'soup.avgQuestions' : 'leaderboard.avgGuesses'),
       render: (r: BoardRow) => (r.avgGuesses != null ? r.avgGuesses.toFixed(2) : '-'),
     }]),
   ];
 
   const selectionLabel = t('leaderboard.selection', {
-    mode: t(`leaderboard.${mode}`),
+    mode: t(mode === 'turtle-soup' ? 'soup.shortTitle' : `leaderboard.${mode}`),
     difficulty: difficultyLabel(t, difficulty),
   });
 
@@ -127,8 +136,9 @@ export default function Leaderboard() {
         </div>
       )}
       <div className="leaderboard-controls">
+        {error && <div role="alert"><p>{error}</p><button className="btn" disabled={loading} onClick={() => setRetry((value) => value + 1)}>{t('common.retry')}</button></div>}
         <div className="leaderboard-mode-tabs" role="tablist" aria-label={t('leaderboard.modeLabel')}>
-          {(['single', 'multi'] as const).map((option) => (
+          {(['single', 'multi', 'turtle-soup'] as const).map((option) => (
             <button
               type="button"
               role="tab"
@@ -137,7 +147,7 @@ export default function Leaderboard() {
               key={option}
               onClick={() => chooseMode(option)}
             >
-              {t(`leaderboard.${option}`)}
+              {t(option === 'turtle-soup' ? 'soup.shortTitle' : `leaderboard.${option}`)}
             </button>
           ))}
         </div>

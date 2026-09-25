@@ -43,8 +43,9 @@ describe('game mode registry', () => {
   });
 
   it('keeps single difficulty and variant as separate contracts', () => {
-    expect(listSingleGameVariants()).toEqual([expect.objectContaining({ key: 'classic' })]);
+    expect(listSingleGameVariants()).toEqual([expect.objectContaining({ key: 'classic' }), expect.objectContaining({ key: 'turtle-soup' })]);
     expect(singleGameVariantSchema.parse('classic')).toBe('classic');
-    expect(singleGameVariantSchema.safeParse('turtle-soup').success).toBe(false);
+    expect(singleGameVariantSchema.safeParse('turtle-soup').success).toBe(true);
+    expect(singleGameVariantSchema.safeParse('unknown').success).toBe(false);
   });
 });

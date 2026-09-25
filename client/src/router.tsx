@@ -1,3 +1,5 @@
+import TurtleSoupLobby from './pages/TurtleSoupLobby';
+import TurtleSoupGame from './pages/TurtleSoupGame';
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './store/auth';
 import Home from './pages/Home';
@@ -45,6 +47,8 @@ export const router = createBrowserRouter([
       { path: '/email-verify', element: <EmailVerify /> },
       { path: '/search', element: <Search /> },
       { path: '/single', element: <SingleLobby /> },
+      { path: '/turtle-soup', element: <TurtleSoupLobby /> },
+      { path: '/turtle-soup/:mode', element: <TurtleSoupGame /> },
       { path: '/single/:mode', element: <SingleGame /> },
       { path: '/daily', element: <DailyLobby /> },
       { path: '/daily/:mode', element: <DailyChallenge /> },

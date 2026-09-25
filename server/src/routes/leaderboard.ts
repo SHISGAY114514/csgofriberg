@@ -13,7 +13,7 @@ const router = Router();
 router.use(optionalAuth);
 const difficultyKeySchema = z.string().trim().regex(/^[a-z0-9][a-z0-9_-]{0,31}$/);
 const leaderboardQuery = z.object({
-  mode: z.enum(['single', 'multi']).default('single'),
+  mode: z.enum(['single', 'multi', 'turtle-soup']).default('single'),
   difficulty: difficultyKeySchema.default('beginner'),
 });
 
@@ -44,13 +44,14 @@ router.get(
           .join('users as u', 'u.id', 'g.user_id')
           .where('u.leaderboard_hidden', false)
           .where('g.mode', difficulty)
+          .where('g.variant', mode === 'turtle-soup' ? 'turtle-soup' : 'classic')
           .whereNot('g.status', 'playing')
           .groupBy('u.id', 'u.username')
           .select('u.id', 'u.username')
           .count({ total: 'g.id' })
           .sum({ wins: db.raw("case when g.status = 'won' then 1 else 0 end") })
           .avg({
-            avgGuesses: db.raw("case when g.status = 'won' then g.guess_count else null end"),
+            avgGuesses: db.raw("case when g.status = 'won' then ?? else null end", [mode === 'turtle-soup' ? 'g.question_count' : 'g.guess_count']),
           });
 
       return (rows as any[])
@@ -71,6 +72,7 @@ router.get(
     res.json({
       mode,
       difficulty,
+      countMetric: mode === 'turtle-soup' ? 'questions' : 'guesses',
       items: board.slice(0, 50),
       currentUser: req.user
         ? {

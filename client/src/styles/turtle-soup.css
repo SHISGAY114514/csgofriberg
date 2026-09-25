@@ -1,0 +1,98 @@
+.soup-intro { margin: 1.5rem 0 2rem; }
+.soup-intro h1 { font-size: clamp(1.5rem, 3vw, 2.5rem); margin: .5rem 0; }
+.soup-counter { font-size: 1.3rem; color: var(--success); font-variant-numeric: tabular-nums; }
+.soup-counter small { color: var(--text-sec); font-size: .8rem; }
+.soup-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(19rem, 1fr); gap: 1.25rem; align-items: start; padding: .5rem 0 1rem; }
+.soup-layout h2 { font-size: 1rem; margin: 0 0 1rem; }
+.soup-section-heading { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border); margin-bottom: .5rem; }
+.soup-history { align-self: stretch; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+/* The question panel sizes the grid row; log content scrolls without growing it. */
+.soup-history-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-wrap: anywhere; overscroll-behavior-y: contain; scrollbar-gutter: stable; contain: size; }
+.soup-history-scroll:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.soup-history-scroll .soup-result { margin-top: 0; margin-bottom: 1.5rem; }
+.soup-log { margin: 0; padding: 0; list-style: none; }
+.soup-event { display: grid; grid-template-columns: 1.7rem minmax(0, 1fr) auto; gap: .7rem; padding: 1rem 0; border-bottom: 1px solid var(--border); align-items: start; }
+.soup-event p { margin: 0; overflow-wrap: anywhere; }
+.soup-event-number { color: var(--text-light); font: .8rem ui-monospace, monospace; padding-top: .2rem; }
+.soup-feedback { border: 1px solid currentColor; border-radius: var(--radius-sm); padding: .15rem .45rem; font-size: .8rem; max-width: 8rem; }
+.soup-correct .soup-feedback { color: var(--success); }
+.soup-close .soup-feedback { color: var(--warning); }
+.soup-wrong .soup-feedback { color: var(--text-sec); }
+.soup-empty { color: var(--text-sec); text-align: center; padding: 4rem 1rem; }
+.soup-question { margin: 0 0 .85rem; }
+.soup-question label { display: block; color: var(--text-sec); font-size: .8rem; margin-bottom: .35rem; }
+.soup-question-controls { display: flex; gap: .5rem; }
+.soup-question-controls .input { min-width: 0; flex: 1; width: 100%; }
+.soup-question-controls .btn { flex-shrink: 0; min-height: 2.6rem; }
+.soup-option-input { position: relative; flex: 1; min-width: 0; }
+.soup-option-input .soup-option-list { top: calc(100% + 4px); bottom: auto; left: 0; right: 0; margin: 0; max-height: min(15rem, 35dvh); }
+.soup-option-list li { overflow-wrap: anywhere; }
+.soup-option-list small { display: block; color: var(--text-sec); font-size: .75rem; margin-top: .2rem; }
+.soup-option-list li.active small, .soup-option-list li:hover small { color: inherit; }
+.soup-no-team { border: 0; background: transparent; color: var(--text-sec); padding: .3rem 0; cursor: pointer; text-decoration: underline; font-size: .75rem; }
+.soup-giveup { width: 100%; margin: .5rem 0 1rem; }
+.soup-rules-entry { display: flex; justify-content: center; width: 100%; margin: 1rem auto; }
+.soup-rules-dialog { width: min(44rem, 100%); text-align: center; }
+.soup-rules-dialog .game-rules-dialog-heading { position: relative; display: flex; flex-direction: column; align-items: center; padding-inline: 3rem; }
+.soup-rules-dialog .game-rules-dialog-heading .confirm-close { position: absolute; top: 1rem; right: 1rem; }
+.soup-rules-dialog .guess-limit { margin: 0; }
+.soup-rules-dialog .rule-panel-title { justify-content: center; }
+.soup-rules-dialog .rule-panel p { margin-inline: auto; max-width: 60ch; line-height: 1.9; }
+.soup-result { border-top: 3px solid var(--border-strong); margin-top: 1rem; padding-top: 1.5rem; }
+.soup-result.soup-correct { border-color: var(--success); }
+.soup-result h3 { font-size: 1.6rem; margin: .5rem 0; }
+.soup-result .btns { flex-wrap: wrap; margin-top: 1rem; }
+.soup-pending { border-color: var(--warning); margin-bottom: 1rem; }
+.soup-mode-tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+html .soup-mode-tabs [role='tab'][aria-selected='true'] { background: var(--text); border-color: var(--text); color: var(--bg); }
+/* Fit both panels above the guess dock in a maximized 1080p browser. */
+@media (min-width: 761px) {
+  .soup-page .page-scroll { padding-block: 1rem; }
+  .soup-page .soup-layout { padding-block: 0; flex-grow: .65; }
+  .soup-layout > .soup-questions { align-self: stretch; display: flex; flex-direction: column; justify-content: space-between; }
+  .soup-layout > .card { padding: 1rem; margin-bottom: 0; }
+  .soup-layout h2 { margin-bottom: .6rem; }
+  .soup-question { margin-bottom: .5rem; }
+  .soup-question label { margin-bottom: .2rem; line-height: 1.3; }
+  .soup-question-controls .input,
+  .soup-question-controls .btn { min-height: 2.25rem; height: 2.25rem; padding: .35rem .65rem; line-height: 1.25; }
+  .soup-questions .soup-giveup { min-height: 2.25rem; padding-block: .4rem; margin: .25rem 0 .5rem; }
+  .soup-questions .soup-rules-entry { margin: .25rem auto 0; }
+  .soup-questions .game-rules-trigger { margin-top: 0; }
+  .soup-history-scroll .soup-event { padding-block: .65rem; }
+}
+/* Wide screens show five columns; narrow screens use stacked compact rows. */
+.home-page .menu-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.home-page .menu-grid .menu-card {
+  min-width: 0;
+  grid-column: auto;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .home-page .menu-grid { grid-template-columns: minmax(0, 1fr); }
+  html .home-page .menu-grid .menu-card {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 112px;
+    padding: 16px 18px;
+    gap: 14px;
+    text-align: left;
+  }
+  .home-page .menu-grid .menu-icon { flex: 0 0 auto; }
+  .home-page .menu-grid .menu-copy { min-width: 0; padding-right: 24px; text-align: left; }
+}
+@media (max-width: 400px) {
+  html .home-page .menu-grid .menu-card { min-height: 102px; padding: 14px; }
+}
+@media (max-width: 760px) {
+  .soup-page .header-bar .title { white-space: normal; overflow: visible; max-width: none; line-height: 1.3; font-size: .9rem; }
+  .soup-page .header-bar .title > svg { flex-shrink: 0; }
+  .soup-layout { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+  .soup-history-scroll { flex: none; height: min(24rem, 36dvh); }
+  .soup-empty { padding: 1.5rem .5rem; }
+  .soup-page .status-bar > .muted { display: none; }
+  .soup-event { gap: .4rem; grid-template-columns: 1.4rem minmax(0, 1fr) auto; }
+}

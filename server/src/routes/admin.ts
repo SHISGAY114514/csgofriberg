@@ -1,3 +1,4 @@
+import { soupReplay } from '../services/turtleSoup';
 import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { z } from 'zod';
@@ -642,6 +643,8 @@ router.get(
           'g.variant',
           'g.status',
           'g.guess_count as guessCount',
+          'g.question_count as questionCount',
+          'g.answer_snapshot',
           'g.finished_at as finishedAt',
           'p.nickname as answer'
         );
@@ -650,7 +653,11 @@ router.get(
         page,
         pageSize,
         hasNext: rows.length > pageSize,
-        items: rows.slice(0, pageSize).map((row) => ({ type: 'single', ...row })),
+        items: rows.slice(0, pageSize).map(({ answer_snapshot, ...row }) => ({
+          type: 'single', ...row,
+          answer: row.variant === 'turtle-soup' && answer_snapshot
+            ? JSON.parse(answer_snapshot).nickname : row.answer,
+        })),
       });
     }
 
@@ -730,6 +737,7 @@ router.get(
       .whereNot('status', 'playing')
       .first();
     if (!game) throw new HttpError(404, 'GAME_NOT_FOUND');
+    if (game.variant === 'turtle-soup') { res.json(soupReplay(game)); return; }
     const target = getPlayer(Number(game.target_player_id));
     if (!target) throw new HttpError(404, 'PLAYER_NOT_FOUND');
 
@@ -946,6 +954,7 @@ router.get(
             : await db('games as g')
               .join('users as u', 'u.id', 'g.user_id')
               .where('g.mode', difficulty.key)
+              .where('g.variant', 'classic')
               .whereNot('g.status', 'playing')
               .where((builder) => builder.where('u.leaderboard_hidden', false).orWhere('u.id', id))
               .groupBy('u.id')
@@ -1191,8 +1200,12 @@ router.get(
       const rows = await db('games as g').join('players as p', 'p.id', 'g.target_player_id')
         .where('g.guest_key', guest.guest_key).whereNot('g.status', 'playing')
         .orderBy('g.finished_at', 'desc').orderBy('g.id', 'desc').offset(offset).limit(parsed.pageSize + 1)
-        .select('g.id', 'g.mode', 'g.variant', 'g.status', 'g.guess_count as guessCount', 'g.finished_at as finishedAt', 'p.nickname as answer');
-      return res.json({ type: parsed.type, page: parsed.page, pageSize: parsed.pageSize, hasNext: rows.length > parsed.pageSize, items: rows.slice(0, parsed.pageSize).map((row) => ({ type: 'single', ...row })) });
+        .select('g.id', 'g.mode', 'g.variant', 'g.status', 'g.guess_count as guessCount', 'g.question_count as questionCount', 'g.answer_snapshot', 'g.finished_at as finishedAt', 'p.nickname as answer');
+      return res.json({ type: parsed.type, page: parsed.page, pageSize: parsed.pageSize, hasNext: rows.length > parsed.pageSize, items: rows.slice(0, parsed.pageSize).map(({ answer_snapshot, ...row }) => ({
+        type: 'single', ...row,
+        answer: row.variant === 'turtle-soup' && answer_snapshot
+          ? JSON.parse(answer_snapshot).nickname : row.answer,
+      })) });
     }
     const identityKey = `g:${guest.guest_key}`;
     const rows = await db('match_players as me').join('match_records as m', 'm.id', 'me.match_id')

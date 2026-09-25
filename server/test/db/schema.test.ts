@@ -19,6 +19,21 @@ function createInstance() {
 }
 
 describe('database schema initialization', () => {
+  it('upgrades legacy games without altering their results', async () => {
+    const instance = createInstance();
+    await ensureSchema(instance);
+    await instance.schema.alterTable('games', (table) => {
+      table.dropColumn('question_count'); table.dropColumn('soup_events'); table.dropColumn('answer_snapshot');
+    });
+    const [player] = await instance('players').insert({ nickname: 'legacy', nationality: '瑞典', age: 25 }).returning('id');
+    await instance('games').insert({ session_id: 'legacy-game', target_player_id: player.id, mode: 'easy', status: 'won', guess_count: 3 });
+    await ensureSchema(instance);
+    await ensureSchema(instance);
+    expect(await instance('games').where({ session_id: 'legacy-game' }).first()).toMatchObject({
+      variant: 'classic', status: 'won', guess_count: 3, question_count: 0, soup_events: null, answer_snapshot: null,
+    });
+  });
+
   it('creates the current schema and remains idempotent', async () => {
     const instance = createInstance();
     await instance.schema.createTable('guest_accounts', (table) => {
@@ -54,6 +69,9 @@ describe('database schema initialization', () => {
     expect(await instance.schema.hasColumn('players', 'team_history')).toBe(true);
     expect(await instance.schema.hasColumn('games', 'first_guess_player_id')).toBe(true);
     expect(await instance.schema.hasColumn('games', 'variant')).toBe(true);
+    for (const column of ['question_count', 'soup_events', 'answer_snapshot']) {
+      expect(await instance.schema.hasColumn('games', column)).toBe(true);
+    }
     expect(await instance.schema.hasColumn('games', 'guess_times')).toBe(true);
     expect(await instance.schema.hasColumn('match_records', 'winner_key')).toBe(true);
     expect(await instance.schema.hasColumn('match_records', 'finish_reason')).toBe(true);

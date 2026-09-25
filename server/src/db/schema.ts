@@ -160,6 +160,15 @@ export async function ensureSchema(instance: Knex = db): Promise<void> {
   if (!(await instance.schema.hasColumn('games', 'variant'))) {
     await instance.schema.alterTable('games', (t) => t.string('variant', 32).notNullable().defaultTo('classic'));
   }
+  if (!(await instance.schema.hasColumn('games', 'question_count'))) {
+    await instance.schema.alterTable('games', (t) => t.integer('question_count').notNullable().defaultTo(0));
+  }
+  if (!(await instance.schema.hasColumn('games', 'soup_events'))) {
+    await instance.schema.alterTable('games', (t) => t.text('soup_events').nullable());
+  }
+  if (!(await instance.schema.hasColumn('games', 'answer_snapshot'))) {
+    await instance.schema.alterTable('games', (t) => t.text('answer_snapshot').nullable());
+  }
   if (!(await instance.schema.hasColumn('players', 'team_history'))) {
     await instance.schema.alterTable('players', (t) => {
       t.text('team_history').notNullable().defaultTo('[]');

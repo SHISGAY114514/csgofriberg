@@ -53,6 +53,12 @@ export const SINGLE_GAME_VARIANT_DEFINITIONS = {
     target: 'player',
     difficultyScoped: true,
   },
+  'turtle-soup': {
+    key: 'turtle-soup',
+    engine: 'attribute-question',
+    target: 'player',
+    difficultyScoped: true,
+  },
 } as const;
 
 export type SingleGameVariant = keyof typeof SINGLE_GAME_VARIANT_DEFINITIONS;
